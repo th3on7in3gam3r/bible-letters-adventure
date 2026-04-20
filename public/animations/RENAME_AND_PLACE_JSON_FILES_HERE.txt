@@ -1,0 +1,11 @@
+# Bible Animations Folder
+// TODO: Download your Bible-themed .json files from lottiefiles.com and place them here.
+// Suggested names:
+// - dove.json (for Game background)
+// - celebrate.json (for Reward screen)
+
+1. Go to lottiefiles.com
+2. Find a "Dove" or "Sparkle" animation
+3. Download the Lottie JSON
+4. Rename to 'dove.json' or 'celebrate.json'
+5. Upload to this folder (public/animations/)
