@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#3B82F6"/>
+  <circle cx="50" cy="50" r="48" fill="url(#grad1)"/>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Open Bible book -->
+  <path d="M 25 35 L 25 70 L 48 65 L 48 30 Z" fill="#FFFFFF" opacity="0.95"/>
+  <path d="M 52 30 L 52 65 L 75 70 L 75 35 Z" fill="#FFFFFF" opacity="0.95"/>
+  <path d="M 25 35 L 48 30 L 52 30 L 75 35" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+  
+  <!-- Letter "A" on the book -->
+  <text x="50" y="58" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#FBBF24" text-anchor="middle">A</text>
+  
+  <!-- Shine effect -->
+  <circle cx="35" cy="25" r="8" fill="#FFFFFF" opacity="0.3"/>
+</svg>
