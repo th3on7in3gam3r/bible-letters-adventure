@@ -3,5 +3,8 @@
     "api/**/*.ts": {
       "runtime": "@vercel/node@3.0.0"
     }
-  }
+  },
+  "buildCommand": "npm run build",
+  "framework": "vite",
+  "installCommand": "npm install --legacy-peer-deps"
 }
