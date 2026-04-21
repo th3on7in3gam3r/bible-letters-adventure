@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/state.ts": {
-      "runtime": "nodejs20.x"
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3.0.0"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/state",
-      "destination": "/api/state.ts"
-    }
-  ]
+  }
 }
