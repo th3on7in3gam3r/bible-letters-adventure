@@ -118,18 +118,21 @@ class SpeechService {
       }
       const audio = new Audio(url);
       this.pronunciationAudio = audio;
+      
+      // Silently fallback to TTS if audio file doesn't exist
       audio.onended = () => {
         localStorage.setItem("bible_letters_audio_last", JSON.stringify({ type: "clip", word, at: Date.now() }));
       };
       audio.onerror = () => {
-        localStorage.setItem("bible_letters_audio_last", JSON.stringify({ type: "tts_fallback", word, at: Date.now() }));
+        // Audio file not found - use TTS instead (silent fallback)
         this.speak(word);
       };
       audio.play().catch(() => {
-        localStorage.setItem("bible_letters_audio_last", JSON.stringify({ type: "tts_fallback", word, at: Date.now() }));
+        // Playback failed - use TTS instead (silent fallback)
         this.speak(word);
       });
     } catch {
+      // Any error - use TTS fallback
       this.speak(word);
     }
   }
