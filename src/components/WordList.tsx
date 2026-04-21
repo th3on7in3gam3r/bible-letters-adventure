@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { BibleWord, getWordDifficulty } from "../data/words";
+import UpgradeModal from "./UpgradeModal";
 import { 
   Trophy, 
   Users, 
@@ -44,8 +45,11 @@ import {
   Star, 
   Music, 
   TreePalm,
-  Layers
+  Layers,
+  Lock
 } from "lucide-react";
+
+const FREE_WORD_LIMIT = 5; // Users can play 5 words for free
 
 interface WordListProps {
   words: BibleWord[];
@@ -130,7 +134,30 @@ const DifficultyStars = ({ level }: { level: 1 | 2 | 3 }) => (
 
 export default function WordList({ words, completedWords, skippedWords, dueReviewWords, onSelectWord }: WordListProps) {
   const [viewMode, setViewMode] = useState<"A_TO_Z" | "PACKS">("A_TO_Z");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+  // Check if user has reached free limit
+  const isPremium = false; // TODO: Connect to actual premium status from biblefunland.com
+  const canPlayMore = isPremium || completedWords.length < FREE_WORD_LIMIT;
+
+  const handleWordClick = (word: BibleWord) => {
+    const isCompleted = completedWords.includes(word.word);
+    
+    // Allow replaying completed words
+    if (isCompleted) {
+      onSelectWord(word);
+      return;
+    }
+
+    // Check if user can play more words
+    if (!canPlayMore) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    onSelectWord(word);
+  };
 
   const wordsByCategory = useMemo(() => {
     const grouped = new Map<string, BibleWord[]>();
@@ -222,19 +249,28 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
                     const isCompleted = completedWords.includes(wordData.word);
                     const needsPractice = skippedWords.includes(wordData.word) && !isCompleted;
                     const difficulty = getWordDifficulty(wordData.word);
+                    const isLocked = !isPremium && !isCompleted && completedWords.length >= FREE_WORD_LIMIT;
+                    
                     return (
                       <motion.button
                         key={wordData.word}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => onSelectWord(wordData)}
+                        onClick={() => handleWordClick(wordData)}
                         className={`
-                          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2
+                          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2 relative
                           ${isCompleted 
                             ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
+                            : isLocked
+                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                             : "bg-white border-white text-gray-700 hover:border-blue-100 hover:bg-blue-50/30"}
                         `}
                       >
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-gray-900/10 rounded-3xl flex items-center justify-center backdrop-blur-[1px]">
+                            <Lock size={32} className="text-gray-400" />
+                          </div>
+                        )}
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.5 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -244,7 +280,7 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
                             damping: 20,
                             delay: 0.1 + (words.indexOf(wordData) % 10) * 0.05 
                           }}
-                          className={`p-3 rounded-2xl ${isCompleted ? 'bg-white' : 'bg-gray-50'}`}
+                          className={`p-3 rounded-2xl ${isCompleted ? 'bg-white' : isLocked ? 'bg-gray-200' : 'bg-gray-50'}`}
                         >
                           {getWordIcon(wordData.word)}
                         </motion.div>
@@ -291,20 +327,29 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
                     const isCompleted = completedWords.includes(wordData.word);
                     const needsPractice = skippedWords.includes(wordData.word) && !isCompleted;
                     const difficulty = getWordDifficulty(wordData.word);
+                    const isLocked = !isPremium && !isCompleted && completedWords.length >= FREE_WORD_LIMIT;
+                    
                     return (
                       <motion.button
                         key={wordData.word}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => onSelectWord(wordData)}
+                        onClick={() => handleWordClick(wordData)}
                         className={`
-                          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2
+                          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2 relative
                           ${isCompleted 
                             ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
+                            : isLocked
+                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                             : "bg-white border-white text-gray-700 hover:border-purple-100 hover:bg-purple-50/30"}
                         `}
                       >
-                        <div className={`p-3 rounded-2xl ${isCompleted ? 'bg-white' : 'bg-gray-50'}`}>
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-gray-900/10 rounded-3xl flex items-center justify-center backdrop-blur-[1px]">
+                            <Lock size={32} className="text-gray-400" />
+                          </div>
+                        )}
+                        <div className={`p-3 rounded-2xl ${isCompleted ? 'bg-white' : isLocked ? 'bg-gray-200' : 'bg-gray-50'}`}>
                           {getWordIcon(wordData.word)}
                         </div>
                         <div className="flex flex-col items-start">
@@ -333,6 +378,14 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
           })
         )}
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        wordsCompleted={completedWords.length}
+        freeLimit={FREE_WORD_LIMIT}
+      />
     </motion.div>
   );
 }
