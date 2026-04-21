@@ -1,15 +1,5 @@
 import { createClient } from "@libsql/client";
-
-type Req = {
-  method?: string;
-  query?: Record<string, string | string[] | undefined>;
-  body?: unknown;
-};
-
-type Res = {
-  status: (code: number) => Res;
-  json: (payload: unknown) => void;
-};
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const getClient = () => {
   const url = process.env.TURSO_DATABASE_URL;
@@ -31,27 +21,13 @@ const ensureSchema = async () => {
   `);
 };
 
-const parseBody = (body: unknown): { playerId?: string; state?: unknown } => {
-  if (!body) return {};
-  if (typeof body === "string") {
-    try {
-      return JSON.parse(body);
-    } catch {
-      return {};
-    }
-  }
-  if (typeof body === "object") return body as { playerId?: string; state?: unknown };
-  return {};
-};
-
-export default async function handler(req: Req, res: Res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await ensureSchema();
     const db = getClient();
 
     if (req.method === "GET") {
-      const queryValue = req.query?.playerId;
-      const playerId = Array.isArray(queryValue) ? queryValue[0] : queryValue;
+      const playerId = req.query.playerId as string | undefined;
       if (!playerId) return res.status(400).json({ error: "playerId is required" });
 
       const result = await db.execute({
@@ -73,7 +49,7 @@ export default async function handler(req: Req, res: Res) {
     }
 
     if (req.method === "POST") {
-      const { playerId, state } = parseBody(req.body);
+      const { playerId, state } = req.body as { playerId?: string; state?: unknown };
       if (!playerId || !state) return res.status(400).json({ error: "playerId and state are required" });
 
       const now = Date.now();
@@ -97,4 +73,5 @@ export default async function handler(req: Req, res: Res) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
 
