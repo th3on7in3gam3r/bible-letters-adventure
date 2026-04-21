@@ -193,20 +193,34 @@ export function useGameState() {
   };
 
   const pushRemote = async (snap: PersistedStatePayload) => {
-    const playerId = getDeviceId();
-    await fetch('/api/state', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ playerId, state: snap }),
-    });
+    try {
+      const playerId = getDeviceId();
+      const res = await fetch('/api/state', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ playerId, state: snap }),
+      });
+      if (!res.ok) {
+        console.warn('Failed to sync to cloud (using local storage only)');
+      }
+    } catch (error) {
+      // Silently fail - game works fine with localStorage only
+      console.warn('Cloud sync unavailable (using local storage only)');
+    }
   };
 
   const pullRemote = async (): Promise<PersistedStatePayload | null> => {
-    const playerId = getDeviceId();
-    const res = await fetch(`/api/state?playerId=${encodeURIComponent(playerId)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data?.state as PersistedStatePayload | undefined) ?? null;
+    try {
+      const playerId = getDeviceId();
+      const res = await fetch(`/api/state?playerId=${encodeURIComponent(playerId)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data?.state as PersistedStatePayload | undefined) ?? null;
+    } catch (error) {
+      // Silently fail - game works fine with localStorage only
+      console.warn('Cloud sync unavailable (using local storage only)');
+      return null;
+    }
   };
 
   useEffect(() => {

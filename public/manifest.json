@@ -1,0 +1,18 @@
+{
+  "name": "Bible Letters Adventure",
+  "short_name": "Bible Letters",
+  "description": "A faith-focused educational game for children to learn Bible words through interactive spelling and sentence games",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF2",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
