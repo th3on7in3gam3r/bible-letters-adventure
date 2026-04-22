@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { BibleWord, getWordDifficulty } from "../data/words";
 import UpgradeModal from "./UpgradeModal";
-import { usePremiumStatus } from "../hooks/usePremiumStatus";
+import { usePremiumStatusDB } from "../hooks/usePremiumStatusDB";
 import { 
   Trophy, 
   Users, 
@@ -138,8 +138,8 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  // Check premium status from biblefunland.com
-  const { isPremium, isLoading } = usePremiumStatus();
+  // Check premium status from biblefunland.com database
+  const { isPremium, isLoading } = usePremiumStatusDB();
   const canPlayMore = isPremium || completedWords.length < FREE_WORD_LIMIT;
 
   const handleWordClick = (word: BibleWord) => {

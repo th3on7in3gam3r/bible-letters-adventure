@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3 } from "lucide-react";
+import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn } from "lucide-react";
+import { useUser, SignInButton } from "@clerk/clerk-react";
 
 interface HomeProps {
   onStart: () => void;
@@ -32,6 +33,7 @@ interface HomeProps {
 
 export default function Home({ onStart, onOpenStats, progressCount, totalCount }: HomeProps) {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+  const { user } = useUser();
   
   useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth);
@@ -50,6 +52,31 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
       exit={{ opacity: 0, scale: 1.1 }}
       className="game-container flex flex-col items-center justify-center text-center px-4 sm:px-6 w-full max-w-2xl mx-auto overflow-y-auto custom-scrollbar"
     >
+      {/* Sign In Button - Top Right */}
+      {!user && (
+        <div className="absolute top-4 right-4 z-10">
+          <SignInButton mode="modal">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg"
+            >
+              <LogIn size={16} />
+              Sign In
+            </motion.button>
+          </SignInButton>
+        </div>
+      )}
+
+      {/* User Info - Top Right */}
+      {user && (
+        <div className="absolute top-4 right-4 z-10 bg-green-100 px-4 py-2 rounded-full border-2 border-green-300">
+          <span className="text-green-700 font-bold text-sm">
+            👋 {user.firstName || user.emailAddresses[0].emailAddress.split('@')[0]}
+          </span>
+        </div>
+      )}
+
       {/* Decorative floating elements */}
       <div className="absolute inset-0 pointer-events-none hidden xs:block overflow-hidden">
         <motion.div 

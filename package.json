@@ -12,6 +12,7 @@
     "install:legacy": "npm install --legacy-peer-deps"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.61.5",
     "@google/genai": "^1.29.0",
     "@libsql/client": "^0.17.2",
     "@lottiefiles/dotlottie-react": "^0.19.0",
