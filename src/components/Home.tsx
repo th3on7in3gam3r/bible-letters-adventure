@@ -52,9 +52,9 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
       exit={{ opacity: 0, scale: 1.1 }}
       className="game-container flex flex-col items-center justify-center text-center px-4 sm:px-6 w-full max-w-2xl mx-auto overflow-y-auto custom-scrollbar"
     >
-      {/* Sign In Button - Top Right */}
+      {/* Sign In Button - Top Left */}
       {!user && (
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 left-4 z-10">
           <SignInButton mode="modal">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -68,9 +68,9 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
         </div>
       )}
 
-      {/* User Info - Top Right */}
+      {/* User Info - Top Left */}
       {user && (
-        <div className="absolute top-4 right-4 z-10 bg-green-100 px-4 py-2 rounded-full border-2 border-green-300">
+        <div className="absolute top-4 left-4 z-10 bg-green-100 px-4 py-2 rounded-full border-2 border-green-300">
           <span className="text-green-700 font-bold text-sm">
             👋 {user.firstName || user.emailAddresses[0].emailAddress.split('@')[0]}
           </span>
