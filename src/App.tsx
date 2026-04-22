@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Book, Settings, ArrowLeft } from "lucide-react";
 import { BIBLE_WORDS, BibleWord } from "./data/words";
+import { WordDataSource, loadBibleWords } from "./data/wordSource";
 import { useGameState } from "./hooks/useGameState";
 import { soundManager } from "./services/soundService";
 import { speechService } from "./services/speechService";
@@ -58,6 +59,8 @@ function getMilestone(progressCount: number, totalCount: number): Milestone | nu
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("HOME");
   const [selectedWord, setSelectedWord] = useState<BibleWord | null>(null);
+  const [words, setWords] = useState<BibleWord[]>(BIBLE_WORDS);
+  const [wordSource, setWordSource] = useState<WordDataSource>("fallback");
   const [milestone, setMilestone] = useState<Milestone | null>(null);
   const [tutorialSeen, setTutorialSeen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
@@ -93,6 +96,19 @@ export default function App() {
     soundManager.setEnabled(settings.soundEnabled);
     speechService.setEnabled(settings.soundEnabled);
   }, [settings.soundEnabled]);
+
+  useEffect(() => {
+    let active = true;
+    loadBibleWords().then((loaded) => {
+      if (active && loaded.words.length > 0) {
+        setWords(loaded.words);
+        setWordSource(loaded.source);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // One-time tutorial gate
   useEffect(() => {
@@ -158,7 +174,7 @@ export default function App() {
   const orderedWords = useMemo(() => {
     const due = new Set(getWordsDueForReview());
     const needsPractice = new Set(skippedWords.filter((word) => !progress.includes(word)));
-    return [...BIBLE_WORDS].sort((a, b) => {
+    return [...words].sort((a, b) => {
       const aNeeds = needsPractice.has(a.word) ? 1 : 0;
       const bNeeds = needsPractice.has(b.word) ? 1 : 0;
       if (aNeeds !== bNeeds) return bNeeds - aNeeds;
@@ -167,27 +183,27 @@ export default function App() {
       if (aDue !== bDue) return bDue - aDue;
       return a.word.localeCompare(b.word);
     });
-  }, [progress, skippedWords, getWordsDueForReview]);
+  }, [words, progress, skippedWords, getWordsDueForReview]);
 
   const dueReviewWords = useMemo(() => {
     const dueSet = new Set(getWordsDueForReview());
-    return BIBLE_WORDS.filter((word) => dueSet.has(word.word));
-  }, [getWordsDueForReview]);
+    return words.filter((word) => dueSet.has(word.word));
+  }, [words, getWordsDueForReview]);
 
   useEffect(() => {
     if (progress.length >= 5) earnBadge("Word Starter (5)");
     if (progress.length >= 10) earnBadge("Faith Builder (10)");
     if (stats.bestStreak >= 5) earnBadge("Streak Hero (5)");
     if (stats.bestStreak >= 10) earnBadge("Streak Champion (10)");
-    if (progress.length === BIBLE_WORDS.length) earnBadge("All Words Complete");
+    if (progress.length === words.length) earnBadge("All Words Complete");
 
-    const packs = buildPackLookup(BIBLE_WORDS);
+    const packs = buildPackLookup(words);
     for (const pack of packs) {
       if (pack.words.length > 0 && pack.words.every((w) => progress.includes(w.word))) {
         earnBadge(`${pack.title} Complete`);
       }
     }
-  }, [progress, stats.bestStreak, earnBadge]);
+  }, [words, progress, stats.bestStreak, earnBadge]);
 
   const getBackScreen = (): Screen => {
     switch (currentScreen) {
@@ -276,14 +292,19 @@ export default function App() {
               }}
               soundEnabled={settings.soundEnabled}
               progressCount={progress.length}
-              totalCount={BIBLE_WORDS.length}
+              totalCount={words.length}
             />
+          )}
+          {import.meta.env.DEV && (
+            <div className="fixed bottom-3 right-3 z-[120] rounded-full px-3 py-1 bg-black/70 text-white text-[10px] uppercase tracking-wider font-black">
+              Words: {wordSource === "turso" ? "Turso" : "Fallback"}
+            </div>
           )}
           {currentScreen === "STATS" && (
             <StatsDashboard
               key="stats"
               completedCount={progress.length}
-              totalCount={BIBLE_WORDS.length}
+              totalCount={words.length}
               accuracyRate={getAccuracyRate()}
               currentStreak={stats.currentStreak}
               bestStreak={stats.bestStreak}
@@ -318,7 +339,13 @@ export default function App() {
                 finishWordSessionTime();
                 navigateTo("WORDS");
               }}
-              onWin={() => navigateTo("SENTENCE")}
+              onWin={({ hintsUsed }) => {
+                for (let i = 0; i < hintsUsed; i++) recordHintUse(selectedWord.word);
+                const updatedProgress = saveProgress(selectedWord.word);
+                setMilestone(getMilestone(updatedProgress.length, words.length));
+                finishWordSessionTime();
+                navigateTo("REWARD");
+              }}
             />
           )}
           {currentScreen === "SENTENCE" && selectedWord && (
@@ -338,7 +365,7 @@ export default function App() {
               }}
               onWin={() => {
                 const updatedProgress = saveProgress(selectedWord.word);
-                setMilestone(getMilestone(updatedProgress.length, BIBLE_WORDS.length));
+                setMilestone(getMilestone(updatedProgress.length, words.length));
                 finishWordSessionTime();
                 navigateTo("REWARD");
               }}

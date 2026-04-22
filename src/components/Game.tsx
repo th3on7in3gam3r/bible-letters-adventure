@@ -1,18 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BibleWord } from "../data/words";
-import { Volume2, RefreshCw, Eye, SkipForward } from "lucide-react";
+import { Volume2, RefreshCw, Eye, SkipForward, Keyboard, Contrast, Timer } from "lucide-react";
 import confetti from "canvas-confetti";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { soundManager } from "../services/soundService";
 import { speechService } from "../services/speechService";
-import { getResponsiveConfig, getScatteringBounds } from "../utils/responsive";
-import { GAME_CONFIG, ANIMATION_CONFIG } from "../constants";
+import { ANIMATION_CONFIG } from "../constants";
 
 interface GameProps {
   wordData: BibleWord;
   soundEnabled: boolean;
-  onWin: () => void;
+  onWin: (result: { starsEarned: number; attempts: number; hintsUsed: number; elapsedMs: number }) => void;
   onSkip: () => void;
   onAttempt: (isCorrect: boolean) => void;
   onHintUse: () => void;
@@ -22,420 +20,314 @@ interface GameProps {
 interface LetterTile {
   id: string;
   char: string;
-  x: number;
-  y: number;
+}
+
+type Difficulty = "easy" | "medium" | "hard";
+type AgeMode = "3-6" | "7-9" | "10-12";
+
+const AGE_CONFIG: Record<AgeMode, { tile: string; input: string }> = {
+  "3-6": { tile: "text-4xl sm:text-5xl", input: "text-4xl sm:text-5xl" },
+  "7-9": { tile: "text-3xl sm:text-4xl", input: "text-3xl sm:text-4xl" },
+  "10-12": { tile: "text-2xl sm:text-3xl", input: "text-2xl sm:text-3xl" },
+};
+
+const getEmoji = (word: string) => {
+  const lower = word.toLowerCase();
+  if (lower.includes("ark")) return "🛶";
+  if (lower.includes("noah")) return "🌈";
+  if (lower.includes("jesus")) return "👑";
+  if (lower.includes("cross")) return "✝️";
+  if (lower.includes("love")) return "❤️";
+  return "✨";
 }
 
 export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt, onHintUse }: GameProps) {
   const word = wordData.word.toUpperCase();
-  const letters = word.split("");
-  const [placed, setPlaced] = useState<(string | null)[]>(new Array(letters.length).fill(null));
-  const [shuffledLetters, setShuffledLetters] = useState<LetterTile[]>([]);
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
-  const [peekIndex, setPeekIndex] = useState<number | null>(null);
-  const [peekCoolingDown, setPeekCoolingDown] = useState(false);
-  const [assistIndex, setAssistIndex] = useState<number | null>(null);
-  const [failedAttemptsInRow, setFailedAttemptsInRow] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const peekTimeoutRef = useRef<number | null>(null);
-  const peekCooldownTimeoutRef = useRef<number | null>(null);
+  const letters = useMemo(() => word.replace(/\s/g, "").split(""), [word]);
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [ageMode, setAgeMode] = useState<AgeMode>("7-9");
+  const [showHint, setShowHint] = useState(true);
+  const [highContrast, setHighContrast] = useState(false);
+  const [placed, setPlaced] = useState<(string | null)[]>([]);
+  const [tiles, setTiles] = useState<LetterTile[]>([]);
+  const [typedAnswer, setTypedAnswer] = useState("");
+  const [toast, setToast] = useState("");
+  const [showVersePopup, setShowVersePopup] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [startMs, setStartMs] = useState(Date.now());
+  const [completed, setCompleted] = useState(false);
+  const [shakeInput, setShakeInput] = useState(false);
+  const [hardRemaining, setHardRemaining] = useState(45);
+  const firstHint = word[0];
+  const typingMode = difficulty !== "easy";
+  const ageClasses = AGE_CONFIG[ageMode];
+  const toastTimerRef = useRef<number | null>(null);
 
-  const config = getResponsiveConfig(windowSize.width, windowSize.height);
-
-  useEffect(() => {
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Speech helper
-  const speak = (text: string) => {
-    if (!soundEnabled) return;
-    speechService.speak(text);
-  };
-
-  const initGame = () => {
-    speechService.stopRepeating();
-    
-    const areaWidth = containerRef.current?.clientWidth || windowSize.width;
-    const bounds = getScatteringBounds(areaWidth, windowSize.height, config.tileSize);
-    
-    const newShuffled = letters.map((char, index) => {
-      const randomX = (Math.random() * bounds.maxX * 2) - bounds.maxX;
-      const randomY = (Math.random() * bounds.maxY * 2) - bounds.maxY;
-      
-      return {
-        id: `${char}-${index}-${Math.random()}`,
-        char,
-        x: randomX,
-        y: randomY,
-      };
-    });
-    
-    const shuffled = [...newShuffled].sort(() => Math.random() - 0.5);
-    setShuffledLetters(shuffled);
+  const restartRound = () => {
+    const mapped = letters.map((char, index) => ({ id: `${char}-${index}-${Math.random()}`, char }));
+    setTiles(mapped.sort(() => Math.random() - 0.5));
     setPlaced(new Array(letters.length).fill(null));
-    setPeekIndex(null);
-    setPeekCoolingDown(false);
-    setAssistIndex(null);
-    setFailedAttemptsInRow(0);
-    
-    speechService.speakWordWithClip(word);
+    setTypedAnswer("");
+    setAttempts(0);
+    setHintsUsed(0);
+    setCompleted(false);
+    setShowVersePopup(false);
+    setHardRemaining(45);
+    setStartMs(Date.now());
   };
 
   useEffect(() => {
-    initGame();
+    restartRound();
     return () => speechService.stopRepeating();
-  }, [word, windowSize.width]);
+  }, [word, difficulty, ageMode]);
 
   useEffect(() => {
-    return () => {
-      if (peekTimeoutRef.current) window.clearTimeout(peekTimeoutRef.current);
-      if (peekCooldownTimeoutRef.current) window.clearTimeout(peekCooldownTimeoutRef.current);
-    };
-  }, []);
+    if (difficulty !== "hard" || completed) return;
+    const timer = window.setInterval(() => {
+      setHardRemaining((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          setToast("Time is up. Try again — God gives new chances! ❤️");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [difficulty, completed]);
 
-  const triggerPeek = () => {
-    if (peekCoolingDown) return;
+  useEffect(() => {
+    if (!toast) return;
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(""), 1800);
+  }, [toast]);
 
-    const nextEmpty = placed.findIndex((p) => !p);
-    if (nextEmpty === -1) return;
-
-    soundManager.play('click');
-    onHintUse();
-    setPeekIndex(nextEmpty);
-    setPeekCoolingDown(true);
-
-    if (peekTimeoutRef.current) window.clearTimeout(peekTimeoutRef.current);
-    if (peekCooldownTimeoutRef.current) window.clearTimeout(peekCooldownTimeoutRef.current);
-
-    peekTimeoutRef.current = window.setTimeout(() => {
-      setPeekIndex(null);
-    }, GAME_CONFIG.PEEK_DURATION_MS);
-
-    peekCooldownTimeoutRef.current = window.setTimeout(() => {
-      setPeekCoolingDown(false);
-    }, GAME_CONFIG.PEEK_COOLDOWN_MS);
+  const speakWord = () => {
+    if (!soundEnabled) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(wordData.word);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
   };
 
-  const handleDragEnd = (event: any, info: any, tile: LetterTile) => {
-    speechService.stopRepeating();
-    
-    // Find nearest slot
-    const slots = document.querySelectorAll(".slot");
-    let nearestIndex = -1;
-    let minDistance = GAME_CONFIG.DRAG_THRESHOLD;
+  const starsFromPerformance = (elapsedMs: number) => {
+    if (attempts <= 2 && hintsUsed === 0 && elapsedMs < 20000) return 3;
+    if (attempts <= 5 && hintsUsed <= 1) return 2;
+    return 1;
+  };
 
-    slots.forEach((slot, index) => {
-      if (placed[index]) return;
-      
-      const rect = slot.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      const distance = Math.sqrt(
-        Math.pow(info.point.x - centerX, 2) + 
-        Math.pow(info.point.y - centerY, 2)
-      );
+  const completeWord = () => {
+    if (completed) return;
+    setCompleted(true);
+    const elapsedMs = Date.now() - startMs;
+    const starsEarned = starsFromPerformance(elapsedMs);
+    const starKey = "bible_letters_word_stars";
+    const raw = localStorage.getItem(starKey);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    parsed[wordData.word] = Math.max(parsed[wordData.word] ?? 0, starsEarned);
+    localStorage.setItem(starKey, JSON.stringify(parsed));
+    confetti({ ...ANIMATION_CONFIG.CONFETTI, particleCount: 180, spread: 95 });
+    setShowVersePopup(true);
+    soundManager.play("win");
+    speechService.speak(`Wonderful! ${wordData.word} is correct!`);
+    onWin({ starsEarned, attempts, hintsUsed, elapsedMs });
+  };
 
-      if (distance < minDistance) {
-        minDistance = distance;
-        nearestIndex = index;
-      }
-    });
-
-    if (nearestIndex !== -1) {
-      if (letters[nearestIndex] === tile.char) {
-        onAttempt(true);
-        // Correct!
-        soundManager.play('correct');
-        setFailedAttemptsInRow(0);
-        setAssistIndex(null);
-        const newPlaced = [...placed];
-        newPlaced[nearestIndex] = tile.char;
-        setPlaced(newPlaced);
-          if (peekIndex === nearestIndex) setPeekIndex(null);
-        
-        // Remove from shuffled
-        setShuffledLetters((prev) => prev.filter((t) => t.id !== tile.id));
-        
-        speechService.speak(tile.char);
-
-        // Check win
-        if (newPlaced.every((p, i) => p === letters[i])) {
-          setTimeout(() => {
-            soundManager.play('win');
-            confetti({
-              ...ANIMATION_CONFIG.CONFETTI,
-              colors: ANIMATION_CONFIG.CONFETTI.colors
-            });
-            speechService.speak(`Great job! ${word}`);
-            setTimeout(onWin, GAME_CONFIG.REWARD_TRANSITION_DELAY);
-          }, GAME_CONFIG.WIN_CELEBRATION_DELAY);
-        }
-      } else {
-        onAttempt(false);
-        // Incorrect placement
-        soundManager.play('incorrect');
-        const nextFailures = failedAttemptsInRow + 1;
-        setFailedAttemptsInRow(nextFailures);
-        if (nextFailures >= 2) {
-          const nextEmpty = placed.findIndex((p) => !p);
-          if (nextEmpty !== -1) {
-            setAssistIndex(nextEmpty);
-            window.setTimeout(() => setAssistIndex(null), 900);
-          }
-          setFailedAttemptsInRow(0);
-        }
-        
-        if (containerRef.current) {
-          const scatteringArea = containerRef.current.querySelector(".scattering-area");
-          if (scatteringArea) {
-            const rect = scatteringArea.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            const newX = info.point.x - centerX;
-            const newY = info.point.y - centerY;
-
-            setShuffledLetters((prev) => prev.map((t) => 
-              t.id === tile.id ? { ...t, x: newX, y: newY } : t
-            ));
-          }
-        }
-      }
+  const checkTyped = (value: string) => {
+    const normalized = value.toUpperCase().replace(/\s/g, "");
+    const target = letters.join("");
+    if (normalized.length < target.length) return;
+    setAttempts((prev) => prev + 1);
+    const correct = normalized === target;
+    onAttempt(correct);
+    if (correct) {
+      soundManager.play("correct");
+      completeWord();
     } else {
-      // Dropped outside any slot
-      if (containerRef.current) {
-        const scatteringArea = containerRef.current.querySelector(".scattering-area");
-        if (scatteringArea) {
-          const rect = scatteringArea.getBoundingClientRect();
-          const centerX = rect.left + rect.width / 2;
-          const centerY = rect.top + rect.height / 2;
-          
-          const newX = info.point.x - centerX;
-          const newY = info.point.y - centerY;
+      soundManager.play("incorrect");
+      setToast("Almost! God gives us new chances! ❤️");
+      setShakeInput(true);
+      window.setTimeout(() => setShakeInput(false), 350);
+    }
+  };
 
-          setShuffledLetters((prev) => prev.map((t) => 
-            t.id === tile.id ? { ...t, x: newX, y: newY } : t
-          ));
-        }
-      }
+  const putLetterInSlot = (char: string) => {
+    const targetIndex = placed.findIndex((entry) => entry === null);
+    if (targetIndex === -1) return;
+    setAttempts((prev) => prev + 1);
+    const correct = letters[targetIndex] === char;
+    onAttempt(correct);
+    if (!correct) {
+      soundManager.play("incorrect");
+      setToast("Almost! God gives us new chances! ❤️");
+      return;
+    }
+    soundManager.play("correct");
+    const next = [...placed];
+    next[targetIndex] = char;
+    setPlaced(next);
+    setTiles((prev) => {
+      const idx = prev.findIndex((t) => t.char === char);
+      if (idx === -1) return prev;
+      const copy = [...prev];
+      copy.splice(idx, 1);
+      return copy;
+    });
+    if (next.every((entry, i) => entry === letters[i])) {
+      completeWord();
     }
   };
 
   return (
-    <div ref={containerRef} className="game-container w-full select-none touch-none relative">
-      {/* Friendly character at the top */}
-      <div className="absolute top-4 right-4 sm:right-12 w-32 h-32 pointer-events-none z-0">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <DotLottieReact
-            src="/animations/dove.json"
-            autoplay
-            loop
-            className="w-full h-full"
-          />
-        </motion.div>
-      </div>
-
-      {/* Title Area */}
-      <div className="text-center relative py-4 z-10 w-full max-w-[90%] mx-auto">
-        <motion.div
-           initial={{ opacity: 0, y: -20 }}
-           animate={{ opacity: 1, y: 0 }}
-        >
-          <h2 className={`${config.titleFontSize} font-display font-black text-gray-800 tracking-tight leading-tight`}>
-            Can you spell <br className="sm:hidden" />
-            <span className="text-amber-500 px-3 py-1 bg-yellow-50 rounded-xl border-4 border-yellow-200 inline-block mt-2 sm:mt-0 shadow-sm transform -rotate-1">
-              {word}
-            </span>?
-          </h2>
-        </motion.div>
-        
-        <div className="flex justify-center gap-4 mt-6">
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+    <div className={`game-container w-full max-w-3xl mx-auto px-4 ${highContrast ? "bg-white text-black" : ""}`}>
+      <div className="text-center mb-5">
+        <div className="text-6xl mb-2" aria-hidden="true">{getEmoji(wordData.word)}</div>
+        <h2 className="font-display font-black text-blue-700 text-4xl sm:text-6xl">{word}</h2>
+        <div className="flex justify-center gap-2 mt-3">
+          <button onClick={speakWord} className="rounded-full bg-blue-500 text-white px-4 py-3 min-h-12 min-w-12 font-black flex items-center gap-2" aria-label="Listen to word pronunciation">
+            <Volume2 size={20} /> Listen
+          </button>
+          <button
             onClick={() => {
-              soundManager.play('click');
-              speechService.speakWordInfo(word, wordData.definition);
+              setShowHint((v) => {
+                const next = !v;
+                if (next) {
+                  setHintsUsed((count) => count + 1);
+                  onHintUse();
+                }
+                return next;
+              });
             }}
-            className="p-4 bg-white text-blue-600 rounded-full shadow-lg border-4 border-blue-50 hover:bg-blue-50 transition-colors"
-            aria-label="Hear word and definition"
+            className="rounded-full bg-purple-100 text-purple-700 px-4 py-3 min-h-12 min-w-12 font-black"
+            aria-label="Toggle bible hint"
           >
-            <Volume2 size={32} />
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: peekCoolingDown ? 1 : 1.1 }}
-            whileTap={{ scale: peekCoolingDown ? 1 : 0.9 }}
-            onClick={triggerPeek}
-            disabled={peekCoolingDown}
-            className={`p-4 bg-white rounded-full shadow-lg border-4 transition-colors ${
-              peekCoolingDown
-                ? "text-gray-300 border-gray-50"
-                : "text-purple-600 border-purple-50 hover:bg-purple-50"
-            }`}
-            aria-label="Peek at the next letter"
-          >
-            <Eye size={28} />
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 180 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              soundManager.play('click');
-              initGame();
-            }}
-            className="p-4 bg-white text-gray-400 rounded-full shadow-lg border-4 border-gray-50 hover:bg-gray-50 transition-colors"
-            aria-label="Shuffle letters"
-          >
-            <RefreshCw size={24} />
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              soundManager.play('click');
-              onSkip();
-            }}
-            className="px-4 py-3 bg-orange-500 text-white rounded-full shadow-lg border-4 border-orange-400 hover:bg-orange-600 transition-colors flex items-center gap-2 font-black uppercase text-xs tracking-wider"
-            aria-label="Skip this word and practice later"
-          >
-            <SkipForward size={18} />
-            Skip
-          </motion.button>
+            <Eye size={18} />
+          </button>
+          <button onClick={restartRound} className="rounded-full bg-gray-100 text-gray-700 px-4 py-3 min-h-12 min-w-12 font-black" aria-label="Restart round">
+            <RefreshCw size={18} />
+          </button>
+          <button onClick={() => setHighContrast((v) => !v)} className="rounded-full bg-yellow-100 text-yellow-800 px-4 py-3 min-h-12 min-w-12 font-black" aria-label="Toggle high contrast mode">
+            <Contrast size={18} />
+          </button>
+          <button onClick={onSkip} className="rounded-full bg-orange-500 text-white px-4 py-3 min-h-12 min-w-12 font-black flex items-center gap-2" aria-label="Skip this word and return to list">
+            <SkipForward size={18} /> Skip
+          </button>
         </div>
       </div>
 
-      {/* Scattering Area */}
-      <div className="scattering-area relative flex-1 w-full flex items-center justify-center overflow-visible my-4 rounded-3xl" style={{ minHeight: Math.max(windowSize.height * 0.3, 200) }}>
-        <AnimatePresence>
-          {shuffledLetters.map((tile) => (
-            <motion.div
-              key={tile.id}
-              drag
-              dragSnapToOrigin={false}
-              dragMomentum={false}
-              dragTransition={{ bounceStiffness: 400, bounceDamping: 20 }}
-              onDragEnd={(e, info) => handleDragEnd(e, info, tile)}
-              onDragStart={() => speechService.startRepeating(tile.char)}
-              initial={{ x: 0, y: 0, scale: 0, rotate: 0 }}
-              animate={{ 
-                x: tile.x, 
-                y: tile.y, 
-                scale: 1, 
-                rotate: (Math.random() - 0.5) * 30 
-              }}
-              exit={{ scale: 0, filter: "brightness(2)" }}
-              whileHover={{ scale: 1.1, rotate: 0 }}
-              whileDrag={{ 
-                scale: 1.25, 
-                zIndex: 100, 
-                rotate: 0, 
-                boxShadow: "0 40px 80px rgba(0,0,0,0.3)",
-                filter: "brightness(1.05)"
-              }}
-              style={{ width: config.tileSize, height: config.tileSize }}
-              className="absolute bg-white rounded-3xl shadow-[0_8px_0_#FACC15,0_15px_30px_rgba(0,0,0,0.1)] border-4 border-yellow-400 flex items-center justify-center font-display font-black text-blue-600 cursor-grab active:cursor-grabbing transform-gpu"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-100 rounded-[inherit] -z-10" />
-              <div className="absolute inset-0 rounded-[inherit] shadow-[inset_0_-6px_0_rgba(0,0,0,0.05)] -z-10" />
-              <span className="text-4xl sm:text-6xl">{tile.char}</span>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="flex flex-wrap gap-2 justify-center mb-3">
+        {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
+          <button key={d} onClick={() => setDifficulty(d)} className={`px-4 py-2 rounded-full font-black uppercase ${difficulty === d ? "bg-blue-600 text-white" : "bg-white border text-gray-700"}`} aria-label={`Set ${d} difficulty`}>
+            {d === "hard" ? <span className="inline-flex items-center gap-1"><Timer size={14} />{d}</span> : d}
+          </button>
+        ))}
+        {(["3-6", "7-9", "10-12"] as AgeMode[]).map((mode) => (
+          <button key={mode} onClick={() => setAgeMode(mode)} className={`px-4 py-2 rounded-full font-black ${ageMode === mode ? "bg-green-600 text-white" : "bg-white border text-gray-700"}`} aria-label={`Set age mode ${mode}`}>
+            {mode}
+          </button>
+        ))}
       </div>
 
-      {/* Target Slots */}
-      <div className="bg-white/40 backdrop-blur-sm p-4 sm:p-6 rounded-[32px] border-4 border-white/60 shadow-inner mb-4 w-full max-w-[95%] mx-auto overflow-x-auto no-scrollbar">
-        <div className="flex justify-center gap-2 sm:gap-3 min-w-max px-2">
-          {letters.map((char, index) => {
-            const isFilled = !!placed[index];
-            const isPeek = !isFilled && peekIndex === index;
-            const isAssist = !isFilled && assistIndex === index;
-            return (
-              <motion.div
-                key={index}
-                animate={isFilled ? { 
-                  scale: [1, 1.1, 1], 
-                  backgroundColor: ["#ffffff", "#dcfce7", "#ffffff"],
-                  borderColor: ["#e5e7eb", "#4ade80", "#4ade80"]
-                } : {}}
-                transition={{ duration: 0.4, type: "tween", ease: "easeOut" }}
-                style={{ width: config.slotSize, height: config.slotSize }}
-                className={`
-                  slot rounded-2xl border-4 border-dashed transition-all flex items-center justify-center relative
-                  ${isFilled 
-                    ? "border-green-400 bg-white shadow-md" 
-                    : "bg-gray-100/50 border-gray-300 shadow-[inset_0_4px_8px_rgba(0,0,0,0.05)]"}
-                  ${isAssist ? "ring-4 ring-amber-300 border-amber-400" : ""}
-                `}
+      {showHint && difficulty !== "hard" && (
+        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-3 text-center font-semibold text-yellow-900 mb-4">
+          Bible hint: {wordData.definition}
+        </div>
+      )}
+
+      {difficulty === "hard" && <p className="text-center font-black text-red-600 mb-3">Time Left: {hardRemaining}s</p>}
+
+      {!typingMode ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+            {tiles.map((tile) => (
+              <motion.button
+                key={tile.id}
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }}
+                onClick={() => putLetterInSlot(tile.char)}
+                className={`rounded-2xl border-4 border-yellow-300 bg-white py-4 min-h-12 ${ageClasses.tile} font-black text-blue-700 shadow-sm`}
+                aria-label={`Place letter ${tile.char}`}
               >
-                {!isFilled && (
-                  <div className="absolute inset-4 rounded-2xl border-2 border-gray-200/50 flex items-center justify-center text-gray-300 font-black text-xs uppercase tracking-widest opacity-30">
-                    ?
-                  </div>
-                )}
+                {tile.char}
+              </motion.button>
+            ))}
+          </div>
+          <div className="flex justify-center gap-2 mb-4 flex-wrap">
+            {letters.map((_, index) => {
+              const value = placed[index] ?? (difficulty === "easy" && index === 0 ? firstHint : "_");
+              const correct = placed[index] === letters[index];
+              return (
+                <motion.div
+                  key={index}
+                  animate={correct ? { scale: [1, 1.08, 1], backgroundColor: ["#ffffff", "#dcfce7", "#ffffff"] } : {}}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-2 flex items-center justify-center font-black ${ageClasses.tile} ${correct ? "border-green-400 text-green-700" : "border-gray-300 text-gray-500"}`}
+                >
+                  {value}
+                </motion.div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <>
+          <motion.input
+            animate={shakeInput ? { x: [0, -8, 8, -6, 6, 0] } : {}}
+            value={typedAnswer}
+            onChange={(e) => {
+              const next = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
+              setTypedAnswer(next);
+              checkTyped(next);
+            }}
+            placeholder={difficulty === "medium" ? `${firstHint}${"_".repeat(Math.max(letters.length - 1, 0))}` : "Type the word"}
+            className={`w-full rounded-2xl border-4 border-blue-200 p-4 text-center tracking-[0.4em] font-black ${ageClasses.input} uppercase`}
+            aria-label="Type the correct spelling"
+          />
+          <div className="mt-3 p-3 rounded-2xl bg-blue-50 border border-blue-100">
+            <p className="text-xs uppercase font-bold text-blue-700 mb-2 flex items-center gap-1"><Keyboard size={14} /> Letter Bank</p>
+            <div className="flex flex-wrap gap-1">
+              {letters.map((char, idx) => (
+                <button
+                  key={`${char}-${idx}`}
+                  onClick={() => {
+                    const next = `${typedAnswer}${char}`;
+                    setTypedAnswer(next);
+                    checkTyped(next);
+                  }}
+                  className="w-10 h-10 rounded-lg border bg-white font-black text-blue-700"
+                  aria-label={`Add letter ${char}`}
+                >
+                  {char}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
-                <AnimatePresence>
-                  {isPeek && (
-                    <motion.span
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.18 }}
-                      className="text-4xl sm:text-6xl font-display font-black text-purple-500 drop-shadow-sm"
-                    >
-                      {letters[index]}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-                
-                <AnimatePresence>
-                  {isFilled && (
-                    <motion.span
-                      initial={{ scale: 0, rotate: -30, y: 20 }}
-                      animate={{ 
-                        scale: 1, 
-                        rotate: 0,
-                        y: 0 
-                      }}
-                      transition={{ 
-                        type: "spring",
-                        stiffness: 260,
-                        damping: 20
-                      }}
-                      className="text-4xl sm:text-6xl font-display font-black text-green-600 drop-shadow-sm"
-                    >
-                      {placed[index]}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white border-2 border-pink-200 text-pink-700 px-4 py-2 rounded-full shadow-lg font-bold z-50" role="status">
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                {/* Snap effect glow */}
-                {isFilled && (
-                  <motion.div 
-                    initial={{ opacity: 1, scale: 0.5 }}
-                    animate={{ opacity: 0, scale: 2 }}
-                    className="absolute inset-0 bg-green-400 rounded-3xl -z-10"
-                  />
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-      
-      <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.2em] opacity-40 text-center pb-4">
-        Drag the letters to spell the word
-      </p>
+      <AnimatePresence>
+        {showVersePopup && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/35 z-40 flex items-center justify-center px-4">
+            <motion.div initial={{ y: 16, scale: 0.97 }} animate={{ y: 0, scale: 1 }} className="bg-white rounded-3xl p-6 max-w-md w-full border-4 border-yellow-100">
+              <h3 className="text-2xl font-display font-black text-blue-700 mb-2">Wonderful!</h3>
+              <p className="font-semibold text-gray-700 mb-3">Like {wordData.word} in God's Word. Hide it in your heart (Psalm 119:11).</p>
+              <p className="text-sm font-bold text-yellow-700 bg-yellow-50 rounded-xl p-3">Verse reference: {wordData.reference}</p>
+              <button className="mt-4 w-full rounded-xl bg-blue-600 text-white font-black py-3" onClick={() => setShowVersePopup(false)}>
+                Keep Going
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

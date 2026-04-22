@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { BibleWord, getWordDifficulty } from "../data/words";
 import UpgradeModal from "./UpgradeModal";
 import { usePremiumStatusDB } from "../hooks/usePremiumStatusDB";
+import AnimatedButton from "./AnimatedButton";
 import { 
   Trophy, 
   Users, 
@@ -165,6 +166,7 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
   const [viewMode, setViewMode] = useState<"A_TO_Z" | "PACKS">("A_TO_Z");
   const [searchQuery, setSearchQuery] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const reducedMotion = useReducedMotion();
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
   // Check premium status from biblefunland.com database
@@ -234,10 +236,10 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
     const isLocked = !isPremium && !isCompleted && completedWords.length >= FREE_WORD_LIMIT;
 
     return (
-      <motion.button
+      <AnimatedButton
         key={wordData.word}
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.97 }}
+        hoverScale={1.03}
+        tapScale={0.97}
         onClick={() => handleWordClick(wordData)}
         className={`
           p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2 relative text-left
@@ -257,14 +259,16 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
           </div>
         )}
         <motion.div
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            type: "spring",
-            stiffness: 260,
-            damping: 20,
-            delay: 0.05 + (idx % 10) * 0.03,
-          }}
+          initial={reducedMotion ? undefined : { opacity: 0, scale: 0.7 }}
+          animate={reducedMotion ? undefined : { opacity: 1, scale: 1 }}
+          transition={reducedMotion
+            ? undefined
+            : {
+                type: "spring",
+                stiffness: 260,
+                damping: 20,
+                delay: 0.05 + (idx % 10) * 0.03,
+              }}
           className={`p-3 rounded-2xl ${isCompleted ? "bg-white" : isLocked ? "bg-gray-200" : "bg-gray-50"}`}
         >
           {getWordIcon(wordData.word)}
@@ -299,7 +303,7 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
             )}
           </div>
         </div>
-      </motion.button>
+      </AnimatedButton>
     );
   };
   
@@ -324,6 +328,7 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
+      transition={reducedMotion ? { duration: 0.01 } : undefined}
       className="game-container w-full max-w-2xl px-4 sm:px-6 overflow-hidden flex flex-col"
     >
       <h2 className="text-3xl sm:text-4xl font-display font-black text-blue-600 mb-6 sm:mb-8 text-center uppercase tracking-tight pt-4">
@@ -356,27 +361,33 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
           Review Queue: {dueReviewWords.length} due now
         </span>
         {dueReviewWords.length > 0 && (
-          <button
+          <AnimatedButton
+            hoverScale={1.02}
+            tapScale={0.97}
             onClick={() => onSelectWord(dueReviewWords[0])}
             className="px-4 py-2 rounded-full bg-orange-500 text-white font-black uppercase tracking-wide shadow-sm hover:bg-orange-600 active:scale-95 transition-all"
             aria-label="Review due word now"
           >
             Review Now
-          </button>
+          </AnimatedButton>
         )}
       </div>
 
       <div className="flex justify-center mb-5 sm:mb-6">
         <div className="bg-white rounded-full p-1.5 shadow-md border-2 border-blue-50 flex gap-1">
-          <button
+          <AnimatedButton
+            hoverScale={1.01}
+            tapScale={0.98}
             onClick={() => setViewMode("A_TO_Z")}
             className={`px-4 sm:px-6 py-2 rounded-full font-black text-sm sm:text-base uppercase tracking-wider transition-colors ${
               viewMode === "A_TO_Z" ? "bg-blue-500 text-white" : "text-gray-500 hover:bg-blue-50"
             }`}
           >
             A–Z
-          </button>
-          <button
+          </AnimatedButton>
+          <AnimatedButton
+            hoverScale={1.01}
+            tapScale={0.98}
             onClick={() => setViewMode("PACKS")}
             className={`px-4 sm:px-6 py-2 rounded-full font-black text-sm sm:text-base uppercase tracking-wider transition-colors flex items-center gap-2 ${
               viewMode === "PACKS" ? "bg-purple-600 text-white" : "text-gray-500 hover:bg-purple-50"
@@ -384,7 +395,7 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
           >
             <Layers size={16} />
             Packs
-          </button>
+          </AnimatedButton>
         </div>
       </div>
 

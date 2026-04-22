@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn, Settings, Volume2, VolumeX, HelpCircle, Star } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/clerk-react";
+import AnimatedButton from "./AnimatedButton";
 
 interface HomeProps {
   onStart: () => void;
@@ -46,6 +47,7 @@ export default function Home({
   const [taglineIndex, setTaglineIndex] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { user } = useUser();
+  const reducedMotion = useReducedMotion();
   const filledStars = useMemo(() => Math.round((progressCount / Math.max(totalCount, 1)) * 10), [progressCount, totalCount]);
   const confettiTriggered = useRef(false);
   
@@ -56,16 +58,17 @@ export default function Home({
   }, []);
 
   useEffect(() => {
+    if (reducedMotion) return;
     const timer = window.setInterval(() => {
       setTaglineIndex((prev) => (prev + 1) % MOTIVATIONAL_TAGLINES.length);
     }, 3000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [reducedMotion]);
 
   useEffect(() => {
     if (confettiTriggered.current) return;
     const stored = Number(localStorage.getItem("bible_letters_home_progress_seen") ?? "0");
-    if (progressCount > stored) {
+    if (!reducedMotion && progressCount > stored) {
       confetti({
         particleCount: 140,
         spread: 80,
@@ -85,6 +88,7 @@ export default function Home({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
+      transition={reducedMotion ? { duration: 0.01 } : undefined}
       className="game-container flex flex-col items-center justify-center text-center px-4 sm:px-6 w-full max-w-2xl mx-auto overflow-y-auto custom-scrollbar"
     >
       <a
@@ -109,14 +113,14 @@ export default function Home({
       {!user && (
         <div className="absolute top-16 left-4 z-10">
           <SignInButton mode="modal">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <AnimatedButton
+              hoverScale={1.05}
+              tapScale={0.95}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg"
             >
               <LogIn size={16} />
               Sign In
-            </motion.button>
+            </AnimatedButton>
           </SignInButton>
         </div>
       )}
@@ -133,15 +137,15 @@ export default function Home({
       {/* Decorative floating elements */}
       <div className="absolute inset-0 pointer-events-none hidden xs:block overflow-hidden">
         <motion.div 
-          animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }} 
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          animate={reducedMotion ? undefined : { y: [0, -20, 0], rotate: [0, 10, 0] }}
+          transition={reducedMotion ? undefined : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-[10%] left-[5%] text-blue-200"
         >
           <Bird className="w-8 h-8 sm:w-16 sm:h-16" />
         </motion.div>
         <motion.div 
-          animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }} 
-          transition={{ duration: 5, repeat: Infinity, delay: 1, ease: "easeInOut" }}
+          animate={reducedMotion ? undefined : { y: [0, 20, 0], rotate: [0, -10, 0] }}
+          transition={reducedMotion ? undefined : { duration: 5, repeat: Infinity, delay: 1, ease: "easeInOut" }}
           className="absolute bottom-[20%] right-[5%] text-green-200"
         >
           <Leaf className="w-8 h-8 sm:w-14 sm:h-14" />
@@ -149,19 +153,19 @@ export default function Home({
       </div>
 
       <motion.div
-        animate={{ 
+        animate={reducedMotion ? undefined : {
           y: [0, -10, 0, 6, 0],
           rotate: [0, -2, 2, -2, 0],
-          scale: [1, 1.03, 1, 1.02, 1]
+          scale: [1, 1.03, 1, 1.02, 1],
         }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        transition={reducedMotion ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
         className="w-40 h-40 sm:w-64 sm:h-64 bg-yellow-100 rounded-[48px] sm:rounded-[72px] flex items-center justify-center mb-10 shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)] border-4 sm:border-8 border-white relative shrink-0"
       >
         <ChristianCross className="w-24 h-24 sm:w-40 sm:h-40 text-yellow-500 drop-shadow-xl" />
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          animate={{ opacity: [0.35, 1, 0.35] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+          animate={reducedMotion ? undefined : { opacity: [0.35, 1, 0.35] }}
+          transition={reducedMotion ? undefined : { duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
         >
           <Sparkles className="absolute top-8 right-10 w-5 h-5 text-yellow-300" />
           <Sparkles className="absolute bottom-8 left-8 w-4 h-4 text-yellow-400" />
@@ -185,7 +189,7 @@ export default function Home({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.45 }}
+            transition={reducedMotion ? { duration: 0.01 } : { duration: 0.45 }}
             className="mt-4 text-base sm:text-lg text-blue-700 font-bold min-h-[28px]"
             aria-live="polite"
           >
@@ -195,9 +199,10 @@ export default function Home({
       </div>
 
       <div className="space-y-6 sm:space-y-10 flex flex-col items-center w-full">
-        <motion.button
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.95 }}
+        <AnimatedButton
+          hoverScale={1.05}
+          tapScale={0.95}
+          hoverRotate={2}
           onClick={onStart}
           style={{ width: buttonWidth }}
           className="btn-playful bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-3 sm:gap-6 py-6 sm:py-8 shadow-[0_12px_0_rgb(37,99,235)] active:shadow-none active:translate-y-[12px] group"
@@ -206,18 +211,18 @@ export default function Home({
             <Play fill="currentColor" className="w-6 h-6 sm:w-10 sm:h-10" />
           </div>
           <span className="text-2xl sm:text-4xl font-black tracking-widest uppercase">PLAY NOW</span>
-        </motion.button>
+        </AnimatedButton>
 
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
+        <AnimatedButton
+          hoverScale={1.04}
+          tapScale={0.96}
           onClick={onOpenStats}
           style={{ width: buttonWidth }}
           className="btn-playful bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-3 py-4 sm:py-5 shadow-[0_10px_0_rgb(126,34,206)] active:shadow-none active:translate-y-[10px]"
         >
           <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
           <span className="text-lg sm:text-2xl font-black uppercase tracking-wider">MY STATS</span>
-        </motion.button>
+        </AnimatedButton>
 
         <div className="bg-white p-5 sm:p-8 rounded-[32px] sm:rounded-[48px] shadow-lg border-4 border-yellow-50 w-full max-w-md">
           <div className="flex items-center justify-between gap-4 mb-4">
