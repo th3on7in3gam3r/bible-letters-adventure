@@ -193,6 +193,7 @@ export function useGameState() {
   };
 
   const pushRemote = async (snap: PersistedStatePayload) => {
+    if (import.meta.env.DEV) return; // API only available on Vercel
     try {
       const playerId = getDeviceId();
       const res = await fetch('/api/state', {
@@ -201,7 +202,7 @@ export function useGameState() {
         body: JSON.stringify({ playerId, state: snap }),
       });
       if (!res.ok) {
-        // Silently fail in dev - API only available on Vercel
+        // Silently fail
       }
     } catch {
       // Silently fail - game works fine with localStorage only
@@ -209,6 +210,7 @@ export function useGameState() {
   };
 
   const pullRemote = async (): Promise<PersistedStatePayload | null> => {
+    if (import.meta.env.DEV) return null; // API only available on Vercel
     try {
       const playerId = getDeviceId();
       const res = await fetch(`/api/state?playerId=${encodeURIComponent(playerId)}`);
