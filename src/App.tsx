@@ -10,6 +10,8 @@ import { BIBLE_WORDS, BibleWord } from "./data/words";
 import { WordDataSource, loadBibleWords } from "./data/wordSource";
 import { useGameState } from "./hooks/useGameState";
 import { usePlayerProfile } from "./hooks/usePlayerProfile";
+import { usePremiumStatusDB } from "./hooks/usePremiumStatusDB";
+import { useBadgeSync, localBadgeToPlatformId } from "./hooks/useBadgeSync";
 import { soundManager } from "./services/soundService";
 import { speechService } from "./services/speechService";
 import { PLACEHOLDER_MUSIC_URL } from "./constants";
@@ -95,6 +97,8 @@ export default function App() {
     updateSettings,
   } = useGameState();
   const { playerName, setPlayerName, parentMode, setParentMode, wordDates, recordWordDate } = usePlayerProfile();
+  const { isPremium, isAuthenticated } = usePremiumStatusDB();
+  const { syncBadge, syncAllBadges } = useBadgeSync();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Sync services with settings
@@ -142,6 +146,13 @@ export default function App() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
+  // Sync all local badges to platform when user authenticates
+  useEffect(() => {
+    if (isAuthenticated && badges.length > 0) {
+      syncAllBadges(badges);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (tutorialSeen) return;
@@ -232,19 +243,26 @@ export default function App() {
   }, [words, progress, skippedWords, dueReviewWords]);
 
   useEffect(() => {
-    if (progress.length >= 5) earnBadge("Word Starter (5)");
-    if (progress.length >= 10) earnBadge("Faith Builder (10)");
-    if (stats.bestStreak >= 5) earnBadge("Streak Hero (5)");
-    if (stats.bestStreak >= 10) earnBadge("Streak Champion (10)");
-    if (progress.length === words.length) earnBadge("All Words Complete");
+    const newBadges: string[] = [];
+    if (progress.length >= 5) newBadges.push("Word Starter (5)");
+    if (progress.length >= 10) newBadges.push("Faith Builder (10)");
+    if (stats.bestStreak >= 5) newBadges.push("Streak Hero (5)");
+    if (stats.bestStreak >= 10) newBadges.push("Streak Champion (10)");
+    if (progress.length === words.length && words.length > 0) newBadges.push("All Words Complete");
 
     const packs = buildPackLookup(words);
     for (const pack of packs) {
       if (pack.words.length > 0 && pack.words.every((w) => progress.includes(w.word))) {
-        earnBadge(`${pack.title} Complete`);
+        newBadges.push(`${pack.title} Complete`);
       }
     }
-  }, [words, progress, stats.bestStreak, earnBadge]);
+
+    for (const badge of newBadges) {
+      earnBadge(badge);
+      const platformId = localBadgeToPlatformId(badge);
+      if (platformId) syncBadge(platformId);
+    }
+  }, [words, progress, stats.bestStreak]);
 
   const getBackScreen = (): Screen => {
     switch (currentScreen) {
@@ -352,6 +370,7 @@ export default function App() {
               progressCount={progress.length}
               totalCount={words.length}
               reviewDueCount={dueReviewCount}
+              isPremium={isPremium}
             />
           )}
           {currentScreen === "STATS" && (
@@ -373,6 +392,8 @@ export default function App() {
               reviewDueCount={dueReviewCount}
               parentMode={parentMode}
               hintUsage={hintUsage}
+              isPremium={isPremium}
+              isAuthenticated={isAuthenticated}
             />
           )}
           {currentScreen === "WORDS" && (
@@ -466,6 +487,7 @@ export default function App() {
               pwaInstallable={!!pwaPrompt}
               onInstallPwa={handleInstallPwa}
               onOpenHowToPlay={() => setShowOnboarding(true)}
+              isPremium={isPremium}
             />
           )}
         </AnimatePresence>

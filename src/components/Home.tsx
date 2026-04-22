@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn, Settings, Volume2, VolumeX, HelpCircle, Star, Calendar } from "lucide-react";
-import { useUser, SignInButton } from "@clerk/clerk-react";
+import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, Settings, Volume2, VolumeX, HelpCircle, Star, Calendar, Crown } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 import AnimatedButton from "./AnimatedButton";
 import CrossPromo from "./CrossPromo";
+import UserBar from "./UserBar";
 
 interface HomeProps {
   onStart: () => void;
@@ -15,6 +16,7 @@ interface HomeProps {
   progressCount: number;
   totalCount: number;
   reviewDueCount: number;
+  isPremium: boolean;
   key?: string;
 }
 
@@ -45,6 +47,7 @@ export default function Home({
   progressCount,
   totalCount,
   reviewDueCount,
+  isPremium,
 }: HomeProps) {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [taglineIndex, setTaglineIndex] = useState(0);
@@ -112,30 +115,10 @@ export default function Home({
         <Settings size={20} />
       </button>
 
-      {/* Sign In Button - Top Left */}
-      {!user && (
-        <div className="absolute top-16 left-4 z-10">
-          <SignInButton mode="modal">
-            <AnimatedButton
-              hoverScale={1.05}
-              tapScale={0.95}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg"
-            >
-              <LogIn size={16} />
-              Sign In
-            </AnimatedButton>
-          </SignInButton>
-        </div>
-      )}
-
-      {/* User Info - Top Left */}
-      {user && (
-        <div className="absolute top-16 left-4 z-10 bg-green-100 px-4 py-2 rounded-full border-2 border-green-300">
-          <span className="text-green-700 font-bold text-sm">
-            👋 {user.firstName || user.emailAddresses[0].emailAddress.split('@')[0]}
-          </span>
-        </div>
-      )}
+      {/* UserBar — top left: sign in or avatar+menu */}
+      <div className="absolute top-4 left-4 z-20">
+        <UserBar isPremium={isPremium} />
+      </div>
 
       {/* Decorative floating elements */}
       <div className="absolute inset-0 pointer-events-none hidden xs:block overflow-hidden">
@@ -250,6 +233,22 @@ export default function Home({
           <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
           <span className="text-lg sm:text-2xl font-black uppercase tracking-wider">MY STATS</span>
         </AnimatedButton>
+
+        {/* Go Pro CTA — shown to signed-in free users */}
+        {user && !isPremium && (
+          <motion.a
+            href="https://biblefunland.com/premium?source=bible-letters"
+            target="_blank"
+            rel="noreferrer"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ width: buttonWidth }}
+            className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-400 text-white font-black text-sm shadow-lg hover:opacity-90 transition-opacity"
+            aria-label="Upgrade to Pro on BibleFunLand"
+          >
+            <Crown size={16} /> Unlock All 52 Words — Go Pro ✨
+          </motion.a>
+        )}
 
         <div className="bg-white p-5 sm:p-8 rounded-[32px] sm:rounded-[48px] shadow-lg border-4 border-yellow-50 w-full max-w-md">
           <div className="flex items-center justify-between gap-4 mb-4">

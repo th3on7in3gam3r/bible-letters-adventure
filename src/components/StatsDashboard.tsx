@@ -4,8 +4,10 @@ import confetti from "canvas-confetti";
 import {
   BarChart3, Target, Trophy, Flame, Clock3, Star, BookOpen,
   Download, Copy, Printer, Award, Calendar, ChevronDown, ChevronUp,
+  Crown, ExternalLink, Lock,
 } from "lucide-react";
 import { BIBLE_WORDS } from "../data/words";
+import { PLATFORM_BADGES } from "../hooks/useBadgeSync";
 
 interface StatsDashboardProps {
   completedCount: number;
@@ -24,6 +26,8 @@ interface StatsDashboardProps {
   reviewDueCount: number;
   parentMode: boolean;
   hintUsage: Record<string, number>;
+  isPremium: boolean;
+  isAuthenticated: boolean;
 }
 
 // SVG progress ring
@@ -195,6 +199,8 @@ export default function StatsDashboard({
   reviewDueCount,
   parentMode,
   hintUsage,
+  isPremium,
+  isAuthenticated,
 }: StatsDashboardProps) {
   const completionPct = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
   const totalStars = completedWords.reduce((sum, w) => {
@@ -476,19 +482,73 @@ export default function StatsDashboard({
           </div>
         )}
 
-        {/* Badges */}
-        {badges.length > 0 && (
-          <div className="mb-4 bg-white rounded-3xl border-2 border-purple-100 p-4">
-            <div className="text-xs font-black uppercase text-purple-600 mb-2 tracking-wider">Badges</div>
-            <div className="flex flex-wrap gap-2">
-              {badges.map((badge) => (
-                <span key={badge} className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-black">
-                  🏅 {badge}
-                </span>
-              ))}
-            </div>
+        {/* Platform Badges */}
+        <div className="mb-4 bg-white rounded-3xl border-2 border-purple-100 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-black uppercase text-purple-600 tracking-wider">Badges</div>
+            {isAuthenticated && (
+              <a
+                href="https://biblefunland.com/profile"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-xs font-bold text-blue-500 hover:text-blue-700"
+                aria-label="View all badges on BibleFunLand"
+              >
+                View on BibleFunLand <ExternalLink size={11} />
+              </a>
+            )}
           </div>
-        )}
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(PLATFORM_BADGES).map(([id, badge]) => {
+              const earned = badges.some(b => b.toLowerCase().includes(badge.label.toLowerCase().split(' ')[0].toLowerCase()))
+                || (id === 'letter-learner' && completedCount >= 10)
+                || (id === 'word-warrior' && completedCount >= 25)
+                || (id === 'scripture-speller' && completedCount >= totalCount && totalCount > 0)
+                || (id === 'streak-hero' && bestStreak >= 5)
+                || (id === 'streak-champion' && bestStreak >= 10)
+                || (id === 'pro-scholar' && isPremium)
+                || (id === 'family-champion' && isPremium);
+              const locked = badge.proOnly && !isPremium;
+
+              return (
+                <div
+                  key={id}
+                  className={`flex items-center gap-2 p-2.5 rounded-2xl border transition-all ${
+                    locked
+                      ? 'bg-gray-50 border-gray-100 opacity-60'
+                      : earned
+                      ? 'bg-purple-50 border-purple-200'
+                      : 'bg-gray-50 border-gray-100 opacity-50'
+                  }`}
+                >
+                  <span className="text-xl">{locked ? '🔒' : badge.emoji}</span>
+                  <div className="min-w-0">
+                    <div className={`text-xs font-black truncate ${earned && !locked ? 'text-purple-700' : 'text-gray-400'}`}>
+                      {badge.label}
+                      {locked && <span className="ml-1 text-[9px] bg-yellow-100 text-yellow-700 px-1 rounded">PRO</span>}
+                    </div>
+                    <div className="text-[10px] text-gray-400 truncate">{badge.desc}</div>
+                  </div>
+                  {earned && !locked && (
+                    <div className="ml-auto w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {!isPremium && (
+            <a
+              href="https://biblefunland.com/premium?source=bible-letters-badges"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-400 text-white font-black text-xs shadow hover:opacity-90 transition-opacity"
+            >
+              <Crown size={13} /> Unlock Pro Badges
+            </a>
+          )}
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3 flex-wrap">

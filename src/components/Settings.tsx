@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download } from "lucide-react";
+import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 import { soundManager } from "../services/soundService";
 
 interface SettingsProps {
@@ -20,6 +21,7 @@ interface SettingsProps {
   pwaInstallable?: boolean;
   onInstallPwa?: () => void;
   onOpenHowToPlay?: () => void;
+  isPremium: boolean;
   key?: string;
 }
 
@@ -40,7 +42,9 @@ export default function Settings({
   pwaInstallable,
   onInstallPwa,
   onOpenHowToPlay,
+  isPremium,
 }: SettingsProps) {
+  const { user } = useUser();
   const [showParentalControls, setShowParentalControls] = useState(false);
   const [parentalVerified, setParentalVerified] = useState(false);
   const [verificationValue, setVerificationValue] = useState("");
@@ -103,7 +107,72 @@ export default function Settings({
       </div>
 
       <div className="space-y-4 sm:space-y-6 overflow-y-auto pr-2 custom-scrollbar pb-6">
-        {/* Sound Effects */}
+
+        {/* BibleFunLand connection status */}
+        {user ? (
+          <div className="flex items-center justify-between p-4 bg-green-50 rounded-2xl border border-green-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-black overflow-hidden">
+                {user.imageUrl
+                  ? <img src={user.imageUrl} alt="" className="w-full h-full object-cover" />
+                  : (user.firstName?.[0] ?? '?').toUpperCase()}
+              </div>
+              <div>
+                <p className="font-black text-sm text-green-800">
+                  ✅ Connected to BibleFunLand
+                  {isPremium && <span className="ml-1 text-[10px] bg-yellow-400 text-white px-1.5 py-0.5 rounded-full font-black">PRO</span>}
+                </p>
+                <p className="text-xs text-green-600 font-medium truncate max-w-[180px]">
+                  {user.firstName || user.emailAddresses[0]?.emailAddress}
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://biblefunland.com/profile"
+              target="_blank"
+              rel="noreferrer"
+              className="text-blue-500 hover:text-blue-700"
+              aria-label="View profile on BibleFunLand"
+            >
+              <ExternalLink size={16} />
+            </a>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <div>
+              <p className="font-black text-sm text-blue-700">Save progress to BibleFunLand</p>
+              <p className="text-xs text-blue-500 font-medium">Sign in to sync across devices</p>
+            </div>
+            <a
+              href="https://biblefunland.com"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 text-xs font-black text-blue-600 bg-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-200"
+            >
+              Sign In <ExternalLink size={11} />
+            </a>
+          </div>
+        )}
+
+        {/* Go Pro */}
+        {!isPremium && (
+          <a
+            href="https://biblefunland.com/premium?source=bible-letters-settings"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between w-full p-4 sm:p-5 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-3xl border border-yellow-200 hover:opacity-90 transition-opacity"
+            aria-label="Upgrade to Pro"
+          >
+            <div className="flex items-center gap-3">
+              <Crown className="w-5 h-5 text-yellow-500" />
+              <div>
+                <p className="font-black text-lg text-left text-yellow-800">Go Pro ✨</p>
+                <p className="text-xs font-medium text-yellow-600">Unlock all 52 words + exclusive badges</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-yellow-500" />
+          </a>
+        )}
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 rounded-3xl border border-gray-100">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className={`p-2.5 sm:p-3 rounded-2xl ${soundEnabled ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
