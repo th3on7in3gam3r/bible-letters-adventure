@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, Settings, Star, Calendar, Crown } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
+import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, Settings, Star, Calendar, Crown, LogIn } from "lucide-react";
+import { useUser, SignInButton } from "@clerk/clerk-react";
 import AnimatedButton from "./AnimatedButton";
 import CrossPromo from "./CrossPromo";
 import UserBar from "./UserBar";
@@ -228,16 +228,34 @@ export default function Home({
           <span className="text-2xl sm:text-4xl font-black tracking-widest uppercase">PLAY NOW</span>
         </AnimatedButton>
 
-        <AnimatedButton
-          hoverScale={1.04}
-          tapScale={0.96}
-          onClick={onOpenStats}
-          style={{ width: buttonWidth }}
-          className="btn-playful bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-3 py-4 sm:py-5 shadow-[0_10px_0_rgb(126,34,206)] active:shadow-none active:translate-y-[10px]"
-        >
-          <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
-          <span className="text-lg sm:text-2xl font-black uppercase tracking-wider">MY STATS</span>
-        </AnimatedButton>
+        {/* MY STATS — sign-in gated */}
+        {user ? (
+          <AnimatedButton
+            hoverScale={1.04}
+            tapScale={0.96}
+            onClick={onOpenStats}
+            style={{ width: buttonWidth }}
+            className="btn-playful bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-3 py-4 sm:py-5 shadow-[0_10px_0_rgb(126,34,206)] active:shadow-none active:translate-y-[10px]"
+          >
+            <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
+            <span className="text-lg sm:text-2xl font-black uppercase tracking-wider">MY STATS</span>
+          </AnimatedButton>
+        ) : (
+          <SignInButton mode="modal">
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              style={{ width: buttonWidth }}
+              className="btn-playful bg-purple-400 text-white flex items-center justify-center gap-3 py-4 sm:py-5 shadow-[0_10px_0_rgb(147,51,234)] active:shadow-none active:translate-y-[10px]"
+              aria-label="Sign in to view your stats"
+            >
+              <LogIn className="w-5 h-5 sm:w-7 sm:h-7" />
+              <span className="text-lg sm:text-2xl font-black uppercase tracking-wider">
+                Sign In for Stats
+              </span>
+            </motion.button>
+          </SignInButton>
+        )}
 
         {/* Go Pro CTA — shown to signed-in free users */}
         {user && !isPremium && (

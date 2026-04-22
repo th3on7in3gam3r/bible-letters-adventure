@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Book, Settings, ArrowLeft } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 import { BIBLE_WORDS, BibleWord } from "./data/words";
 import { WordDataSource, loadBibleWords } from "./data/wordSource";
 import { useGameState } from "./hooks/useGameState";
@@ -175,7 +176,11 @@ export default function App() {
     setPwaPrompt(null);
   };
 
+  const { user } = useUser();
+
   const navigateTo = (screen: Screen, word: BibleWord | null = null) => {
+    // STATS is profile-linked — require sign-in
+    if (screen === "STATS" && !user) return;
     if ((currentScreen === "GAME" || currentScreen === "SENTENCE") && screen !== "GAME" && screen !== "SENTENCE") {
       finishWordSessionTime();
     }
@@ -183,9 +188,7 @@ export default function App() {
     if (word) setSelectedWord(word);
     if (screen !== "REWARD") setMilestone(null);
     setCurrentScreen(screen);
-  };
-
-  const startWordSession = (word: BibleWord) => {
+  };  const startWordSession = (word: BibleWord) => {
     setSelectedWord(word);
     setActiveWordStartMs(Date.now());
     setSessionHintCount(0);
