@@ -9,6 +9,7 @@ import { Book, Settings, ArrowLeft } from "lucide-react";
 import { BIBLE_WORDS, BibleWord } from "./data/words";
 import { WordDataSource, loadBibleWords } from "./data/wordSource";
 import { useGameState } from "./hooks/useGameState";
+import { usePlayerProfile } from "./hooks/usePlayerProfile";
 import { soundManager } from "./services/soundService";
 import { speechService } from "./services/speechService";
 import { PLACEHOLDER_MUSIC_URL } from "./constants";
@@ -89,6 +90,7 @@ export default function App() {
     resetProgress,
     updateSettings,
   } = useGameState();
+  const { playerName, setPlayerName, parentMode, setParentMode, wordDates, recordWordDate } = usePlayerProfile();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Sync services with settings
@@ -300,6 +302,7 @@ export default function App() {
               soundEnabled={settings.soundEnabled}
               progressCount={progress.length}
               totalCount={words.length}
+              reviewDueCount={getWordsDueForReview().length}
             />
           )}
           {currentScreen === "STATS" && (
@@ -314,6 +317,13 @@ export default function App() {
               totalPlayMinutes={getTotalPlayMinutes()}
               badges={badges}
               dailyGoal={dailyGoal}
+              completedWords={progress}
+              wordDates={wordDates}
+              playerName={playerName}
+              onSetPlayerName={setPlayerName}
+              reviewDueCount={getWordsDueForReview().length}
+              parentMode={parentMode}
+              hintUsage={hintUsage}
             />
           )}
           {currentScreen === "WORDS" && (
@@ -344,6 +354,7 @@ export default function App() {
               onWin={({ hintsUsed }) => {
                 for (let i = 0; i < hintsUsed; i++) recordHintUse(selectedWord.word);
                 const updatedProgress = saveProgress(selectedWord.word);
+                recordWordDate(selectedWord.word);
                 setMilestone(getMilestone(updatedProgress.length, words.length));
                 finishWordSessionTime();
                 navigateTo("REWARD");
@@ -367,6 +378,7 @@ export default function App() {
               }}
               onWin={() => {
                 const updatedProgress = saveProgress(selectedWord.word);
+                recordWordDate(selectedWord.word);
                 setMilestone(getMilestone(updatedProgress.length, words.length));
                 finishWordSessionTime();
                 navigateTo("REWARD");
@@ -399,6 +411,8 @@ export default function App() {
               accuracyRate={getAccuracyRate()}
               badges={badges}
               hintUsage={hintUsage}
+              parentMode={parentMode}
+              onToggleParentMode={setParentMode}
             />
           )}
         </AnimatePresence>

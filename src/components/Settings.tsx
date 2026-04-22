@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target } from "lucide-react";
+import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap } from "lucide-react";
 
 import { soundManager } from "../services/soundService";
 
@@ -16,6 +16,8 @@ interface SettingsProps {
   accuracyRate: number;
   badges: string[];
   hintUsage: Record<string, number>;
+  parentMode: boolean;
+  onToggleParentMode: (enabled: boolean) => void;
   key?: string;
 }
 
@@ -31,6 +33,8 @@ export default function Settings({
   accuracyRate,
   badges,
   hintUsage,
+  parentMode,
+  onToggleParentMode,
 }: SettingsProps) {
   const [showParentalControls, setShowParentalControls] = useState(false);
   const [parentalVerified, setParentalVerified] = useState(false);
@@ -133,6 +137,30 @@ export default function Settings({
           >
             <motion.div 
               animate={{ x: musicEnabled ? (isSmallScreen ? 24 : 32) : 4 }}
+              className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
+            />
+          </button>
+        </div>
+
+        {/* Parent / Teacher Mode */}
+        <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 rounded-3xl border border-gray-100">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className={`p-2.5 sm:p-3 rounded-2xl ${parentMode ? 'bg-purple-100 text-purple-600' : 'bg-gray-200 text-gray-500'}`}>
+              <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <p className="font-black text-lg sm:text-xl text-gray-800">Parent / Teacher View</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Shows verse refs & accuracy details</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onToggleParentMode(!parentMode)}
+            className={`w-12 h-6 sm:w-16 sm:h-8 rounded-full relative transition-colors ${parentMode ? 'bg-purple-500' : 'bg-gray-300'} shrink-0`}
+            aria-label={`${parentMode ? 'Disable' : 'Enable'} parent teacher mode`}
+            aria-pressed={parentMode}
+          >
+            <motion.div
+              animate={{ x: parentMode ? (isSmallScreen ? 24 : 32) : 4 }}
               className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
             />
           </button>

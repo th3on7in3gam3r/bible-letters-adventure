@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn, Settings, Volume2, VolumeX, HelpCircle, Star } from "lucide-react";
+import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn, Settings, Volume2, VolumeX, HelpCircle, Star, Calendar } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/clerk-react";
 import AnimatedButton from "./AnimatedButton";
 
@@ -13,6 +13,7 @@ interface HomeProps {
   soundEnabled: boolean;
   progressCount: number;
   totalCount: number;
+  reviewDueCount: number;
   key?: string;
 }
 
@@ -42,6 +43,7 @@ export default function Home({
   soundEnabled,
   progressCount,
   totalCount,
+  reviewDueCount,
 }: HomeProps) {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [taglineIndex, setTaglineIndex] = useState(0);
@@ -199,6 +201,30 @@ export default function Home({
       </div>
 
       <div className="space-y-6 sm:space-y-10 flex flex-col items-center w-full">
+        {/* Daily nudge / review banner */}
+        {reviewDueCount > 0 && (
+          <motion.button
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={onStart}
+            style={{ width: buttonWidth }}
+            className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl px-5 py-3 shadow-lg font-black text-sm"
+            aria-label={`${reviewDueCount} words due for review`}
+          >
+            <Calendar size={20} className="shrink-0" />
+            <span>{reviewDueCount} word{reviewDueCount !== 1 ? "s" : ""} ready for review! 📖</span>
+          </motion.button>
+        )}
+        {reviewDueCount === 0 && progressCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ width: buttonWidth }}
+            className="text-center text-blue-600 font-bold text-sm bg-blue-50 rounded-2xl px-4 py-2"
+          >
+            Ready for today's Bible words? 🌟
+          </motion.div>
+        )}
         <AnimatedButton
           hoverScale={1.05}
           tapScale={0.95}
