@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, Settings, Volume2, VolumeX, HelpCircle, Star, Calendar, Crown } from "lucide-react";
+import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, Settings, Star, Calendar, Crown } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import AnimatedButton from "./AnimatedButton";
 import CrossPromo from "./CrossPromo";
@@ -12,6 +12,7 @@ interface HomeProps {
   onOpenStats: () => void;
   onToggleSound: (enabled: boolean) => void;
   onOpenHowToPlay: () => void;
+  onOpenSettings: () => void;
   soundEnabled: boolean;
   progressCount: number;
   totalCount: number;
@@ -43,6 +44,7 @@ export default function Home({
   onOpenStats,
   onToggleSound,
   onOpenHowToPlay,
+  onOpenSettings,
   soundEnabled,
   progressCount,
   totalCount,
@@ -51,7 +53,6 @@ export default function Home({
 }: HomeProps) {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [taglineIndex, setTaglineIndex] = useState(0);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { user } = useUser();
   const reducedMotion = useReducedMotion();
   const filledStars = useMemo(() => Math.round((progressCount / Math.max(totalCount, 1)) * 10), [progressCount, totalCount]);
@@ -115,9 +116,9 @@ export default function Home({
         <div className="flex items-center gap-2">
           <UserBar isPremium={isPremium} />
           <button
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={onOpenSettings}
             className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-full transition-all hover:scale-105 active:scale-95"
-            aria-label="Open quick settings"
+            aria-label="Open settings"
           >
             <Settings size={18} />
           </button>
@@ -283,53 +284,6 @@ export default function Home({
       </p>
 
       <CrossPromo />
-
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <button
-              className="absolute inset-0 bg-black/35"
-              onClick={() => setIsSettingsOpen(false)}
-              aria-label="Close quick settings"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 8 }}
-              className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border-4 border-blue-50"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Quick settings"
-            >
-              <h3 className="text-2xl font-display font-black text-blue-600 mb-5">Quick Settings</h3>
-              <button
-                onClick={() => onToggleSound(!soundEnabled)}
-                className="w-full rounded-2xl px-4 py-3 mb-3 bg-blue-50 text-blue-700 font-bold flex items-center justify-between hover:bg-blue-100 transition-all"
-                aria-label={`Turn sound ${soundEnabled ? "off" : "on"}`}
-              >
-                <span>Sound {soundEnabled ? "On" : "Off"}</span>
-                {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-              </button>
-              <button
-                onClick={() => {
-                  setIsSettingsOpen(false);
-                  onOpenHowToPlay();
-                }}
-                className="w-full rounded-2xl px-4 py-3 bg-yellow-100 text-yellow-700 font-bold flex items-center justify-between hover:bg-yellow-200 transition-all"
-                aria-label="Open how to play tutorial"
-              >
-                <span>How to Play</span>
-                <HelpCircle size={18} />
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

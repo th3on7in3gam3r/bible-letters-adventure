@@ -237,17 +237,19 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
         <div className="flex flex-col items-start flex-1 min-w-0">
           <div className="flex items-center gap-2 w-full">
             <span className="font-black text-xl tracking-tight leading-none mb-1 truncate">{wordData.word}</span>
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               onClick={(e) => {
                 e.stopPropagation();
                 speakWord(wordData.word);
               }}
-              className="ml-auto p-1.5 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95"
+              onKeyDown={(e) => e.key === 'Enter' && speakWord(wordData.word)}
+              className="ml-auto p-1.5 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95 cursor-pointer shrink-0"
               aria-label={`Hear pronunciation for ${wordData.word}`}
             >
               <Volume2 size={14} />
-            </button>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <DifficultyStars level={difficulty} />

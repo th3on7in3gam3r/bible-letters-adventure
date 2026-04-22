@@ -101,7 +101,7 @@ export default function App() {
   const { syncBadge, syncAllBadges } = useBadgeSync();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync services with settings
+  // Sync services with settings (on mount + whenever they change)
   useEffect(() => {
     soundManager.setEnabled(settings.soundEnabled);
     speechService.setEnabled(settings.soundEnabled);
@@ -370,10 +370,8 @@ export default function App() {
               onStart={() => navigateTo("WORDS")} 
               onOpenStats={() => navigateTo("STATS")}
               onToggleSound={(enabled) => updateSettings({ soundEnabled: enabled })}
-              onOpenHowToPlay={() => {
-                setTutorialOpen(true);
-                setTutorialStep(0);
-              }}
+              onOpenHowToPlay={() => setShowOnboarding(true)}
+              onOpenSettings={() => navigateTo("SETTINGS")}
               soundEnabled={settings.soundEnabled}
               progressCount={progress.length}
               totalCount={words.length}

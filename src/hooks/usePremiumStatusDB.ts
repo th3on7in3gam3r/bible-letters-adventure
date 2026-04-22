@@ -20,6 +20,13 @@ export function usePremiumStatusDB() {
           return;
         }
 
+        // Skip API call in local dev — API only runs on Vercel
+        if (import.meta.env.DEV) {
+          setIsPremium(false);
+          setIsLoading(false);
+          return;
+        }
+
         // Query the database for subscription status
         const response = await fetch(`/api/subscription?userId=${user.id}`);
         
