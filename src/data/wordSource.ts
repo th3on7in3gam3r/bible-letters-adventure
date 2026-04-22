@@ -1,4 +1,4 @@
-import { turso } from "../../lib/db";
+import { getTursoClient } from "../../lib/db";
 import { BIBLE_WORDS, type BibleWord } from "./words";
 
 export type WordDataSource = "turso" | "fallback";
@@ -37,6 +37,8 @@ export async function loadBibleWords(): Promise<{ words: BibleWord[]; source: Wo
   if (!hasClientEnv()) return { words: BIBLE_WORDS, source: "fallback" };
 
   try {
+    const turso = getTursoClient();
+    if (!turso) return { words: BIBLE_WORDS, source: "fallback" };
     const result = await turso.execute(`
       SELECT word, definition, sentence, reference, category
       FROM bible_words
