@@ -201,11 +201,10 @@ export function useGameState() {
         body: JSON.stringify({ playerId, state: snap }),
       });
       if (!res.ok) {
-        console.warn('Failed to sync to cloud (using local storage only)');
+        // Silently fail in dev - API only available on Vercel
       }
-    } catch (error) {
+    } catch {
       // Silently fail - game works fine with localStorage only
-      console.warn('Cloud sync unavailable (using local storage only)');
     }
   };
 
@@ -216,9 +215,8 @@ export function useGameState() {
       if (!res.ok) return null;
       const data = await res.json();
       return (data?.state as PersistedStatePayload | undefined) ?? null;
-    } catch (error) {
+    } catch {
       // Silently fail - game works fine with localStorage only
-      console.warn('Cloud sync unavailable (using local storage only)');
       return null;
     }
   };
