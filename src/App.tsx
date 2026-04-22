@@ -101,11 +101,37 @@ export default function App() {
   const { syncBadge, syncAllBadges } = useBadgeSync();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync services with settings (on mount + whenever they change)
+  // Register audio element with soundManager on mount
+  useEffect(() => {
+    if (audioRef.current) soundManager.setMusicAudio(audioRef.current);
+  }, []);
+
+  // Sound effects toggle
   useEffect(() => {
     soundManager.setEnabled(settings.soundEnabled);
     speechService.setEnabled(settings.soundEnabled);
   }, [settings.soundEnabled]);
+
+  // Music toggle — directly via soundManager
+  useEffect(() => {
+    soundManager.setMusicEnabled(settings.musicEnabled);
+  }, [settings.musicEnabled]);
+
+  // Start music on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    if (!settings.musicEnabled) return;
+    const onFirst = () => {
+      soundManager.setMusicEnabled(true);
+      window.removeEventListener('click', onFirst);
+      window.removeEventListener('touchstart', onFirst);
+    };
+    window.addEventListener('click', onFirst);
+    window.addEventListener('touchstart', onFirst);
+    return () => {
+      window.removeEventListener('click', onFirst);
+      window.removeEventListener('touchstart', onFirst);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -176,35 +202,6 @@ export default function App() {
     (pwaPrompt as any).prompt?.();
     setPwaPrompt(null);
   };
-
-  // Background Music Controller
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (settings.musicEnabled) {
-      // Try to play immediately; if blocked (autoplay policy), wait for first click
-      const tryPlay = () => audio.play().catch(() => {});
-      tryPlay();
-
-      // Fallback: start on first user interaction if still paused
-      const onFirstClick = () => {
-        if (audio.paused && settings.musicEnabled) audio.play().catch(() => {});
-        window.removeEventListener('click', onFirstClick);
-        window.removeEventListener('touchstart', onFirstClick);
-      };
-      window.addEventListener('click', onFirstClick);
-      window.addEventListener('touchstart', onFirstClick);
-      return () => {
-        window.removeEventListener('click', onFirstClick);
-        window.removeEventListener('touchstart', onFirstClick);
-      };
-    } else {
-      // Immediately pause and reset
-      audio.pause();
-      audio.currentTime = 0;
-    }
-  }, [settings.musicEnabled]);
 
   const navigateTo = (screen: Screen, word: BibleWord | null = null) => {
     if ((currentScreen === "GAME" || currentScreen === "SENTENCE") && screen !== "GAME" && screen !== "SENTENCE") {
