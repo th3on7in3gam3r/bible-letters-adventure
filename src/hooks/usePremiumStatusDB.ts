@@ -20,9 +20,10 @@ export function usePremiumStatusDB() {
           return;
         }
 
-        // Skip API call in local dev — API only runs on Vercel
+        // Skip API call in local dev — but still allow override via env
         if (import.meta.env.DEV) {
-          setIsPremium(false);
+          // In dev, treat as Pro if VITE_DEV_IS_PRO=true in .env
+          setIsPremium(import.meta.env.VITE_DEV_IS_PRO === 'true');
           setIsLoading(false);
           return;
         }

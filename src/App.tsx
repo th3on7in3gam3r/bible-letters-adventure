@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Book, Settings, ArrowLeft } from "lucide-react";
 import { BIBLE_WORDS, BibleWord } from "./data/words";
@@ -14,7 +14,6 @@ import { usePremiumStatusDB } from "./hooks/usePremiumStatusDB";
 import { useBadgeSync, localBadgeToPlatformId } from "./hooks/useBadgeSync";
 import { soundManager } from "./services/soundService";
 import { speechService } from "./services/speechService";
-import { PLACEHOLDER_MUSIC_URL } from "./constants";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Home from "./components/Home";
 import WordList from "./components/WordList";
@@ -99,39 +98,12 @@ export default function App() {
   const { playerName, setPlayerName, parentMode, setParentMode, wordDates, recordWordDate } = usePlayerProfile();
   const { isPremium, isAuthenticated } = usePremiumStatusDB();
   const { syncBadge, syncAllBadges } = useBadgeSync();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Register audio element with soundManager on mount
-  useEffect(() => {
-    if (audioRef.current) soundManager.setMusicAudio(audioRef.current);
-  }, []);
 
   // Sound effects toggle
   useEffect(() => {
     soundManager.setEnabled(settings.soundEnabled);
     speechService.setEnabled(settings.soundEnabled);
   }, [settings.soundEnabled]);
-
-  // Music toggle — directly via soundManager
-  useEffect(() => {
-    soundManager.setMusicEnabled(settings.musicEnabled);
-  }, [settings.musicEnabled]);
-
-  // Start music on first user interaction (browser autoplay policy)
-  useEffect(() => {
-    if (!settings.musicEnabled) return;
-    const onFirst = () => {
-      soundManager.setMusicEnabled(true);
-      window.removeEventListener('click', onFirst);
-      window.removeEventListener('touchstart', onFirst);
-    };
-    window.addEventListener('click', onFirst);
-    window.addEventListener('touchstart', onFirst);
-    return () => {
-      window.removeEventListener('click', onFirst);
-      window.removeEventListener('touchstart', onFirst);
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -475,9 +447,7 @@ export default function App() {
             <SettingsScreen
               key="settings"
               soundEnabled={settings.soundEnabled}
-              musicEnabled={settings.musicEnabled}
               onToggleSound={(enabled) => updateSettings({ soundEnabled: enabled })}
-              onToggleMusic={(enabled) => updateSettings({ musicEnabled: enabled })}
               onResetProgress={resetProgress}
               completedWords={progress}
               skippedWords={skippedWords.filter((word) => !progress.includes(word))}
@@ -494,15 +464,6 @@ export default function App() {
             />
           )}
         </AnimatePresence>
-
-        {/* Hidden Music Player */}
-        <audio 
-          ref={audioRef}
-          src={PLACEHOLDER_MUSIC_URL}
-          loop
-          preload="auto"
-          aria-hidden="true"
-        />
 
         {/* Bottom accent */}
         <motion.div 

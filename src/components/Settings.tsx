@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown } from "lucide-react";
+import { Volume2, VolumeX, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { soundManager } from "../services/soundService";
 
 interface SettingsProps {
   soundEnabled: boolean;
-  musicEnabled: boolean;
   onToggleSound: (enabled: boolean) => void;
-  onToggleMusic: (enabled: boolean) => void;
   onResetProgress: () => void;
   completedWords: string[];
   skippedWords: string[];
@@ -27,9 +25,7 @@ interface SettingsProps {
 
 export default function Settings({ 
   soundEnabled, 
-  musicEnabled, 
   onToggleSound, 
-  onToggleMusic,
   onResetProgress,
   completedWords,
   skippedWords,
@@ -189,28 +185,6 @@ export default function Settings({
           >
             <motion.div 
               animate={{ x: soundEnabled ? (isSmallScreen ? 24 : 32) : 4 }}
-              className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
-            />
-          </button>
-        </div>
-
-        {/* Music */}
-        <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 rounded-3xl border border-gray-100">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className={`p-2.5 sm:p-3 rounded-2xl ${musicEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
-              <Music className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div>
-              <p className="font-black text-lg sm:text-xl text-gray-800">Music</p>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Happy tunes</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => onToggleMusic(!musicEnabled)}
-            className={`w-12 h-6 sm:w-16 sm:h-8 rounded-full relative transition-colors ${musicEnabled ? 'bg-blue-500' : 'bg-gray-300'} shrink-0`}
-          >
-            <motion.div 
-              animate={{ x: musicEnabled ? (isSmallScreen ? 24 : 32) : 4 }}
               className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
             />
           </button>
