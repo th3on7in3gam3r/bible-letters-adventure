@@ -272,20 +272,36 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
 
       {!typingMode ? (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+          {/* Letter tiles — 3D style for ages 3-6, standard for others */}
+          <div className={`grid gap-3 mb-5 ${isYoungKid ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-3"}`}>
             {tiles.map((tile) => (
               <motion.button
                 key={tile.id}
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.92, y: 4 }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 onClick={() => putLetterInSlot(tile.char)}
-                className={`rounded-2xl border-4 border-yellow-300 bg-white py-4 min-h-14 ${ageClasses.tile} font-black text-blue-700 shadow-sm`}
+                className={`
+                  font-black text-center select-none
+                  ${isYoungKid
+                    ? `rounded-3xl bg-gradient-to-b from-yellow-300 to-yellow-400 text-blue-800
+                       border-b-[6px] border-yellow-600 border-x-2 border-t-2 border-yellow-500
+                       shadow-[0_6px_0_#92400e,0_8px_16px_rgba(0,0,0,0.15)]
+                       active:shadow-[0_2px_0_#92400e] active:translate-y-1
+                       py-6 min-h-20 text-5xl sm:text-6xl`
+                    : `rounded-2xl border-4 border-yellow-300 bg-white py-4 min-h-14 ${ageClasses.tile} shadow-sm`
+                  }
+                `}
                 aria-label={`Place letter ${tile.char}`}
               >
                 {tile.char}
               </motion.button>
             ))}
           </div>
+
+          {/* Answer slots */}
           <div className="flex justify-center gap-2 mb-4 flex-wrap">
             {letters.map((_, index) => {
               const value = placed[index] ?? (difficulty === "easy" && index === 0 ? firstHint : "_");
@@ -293,8 +309,15 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
               return (
                 <motion.div
                   key={index}
-                  animate={correct ? { scale: [1, 1.08, 1], backgroundColor: ["#ffffff", "#dcfce7", "#ffffff"] } : {}}
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-2 flex items-center justify-center font-black ${ageClasses.tile} ${correct ? "border-green-400 text-green-700" : "border-gray-300 text-gray-500"}`}
+                  animate={correct ? { scale: [1, 1.15, 1], backgroundColor: ["#ffffff", "#dcfce7", "#ffffff"] } : {}}
+                  transition={{ duration: 0.35 }}
+                  className={`
+                    flex items-center justify-center font-black rounded-xl border-2
+                    ${isYoungKid ? "w-14 h-14 sm:w-16 sm:h-16 text-3xl sm:text-4xl" : `w-12 h-12 sm:w-14 sm:h-14 ${ageClasses.tile}`}
+                    ${correct
+                      ? "border-green-400 bg-green-50 text-green-700 shadow-md"
+                      : "border-gray-300 text-gray-400 bg-white"}
+                  `}
                 >
                   {value}
                 </motion.div>
