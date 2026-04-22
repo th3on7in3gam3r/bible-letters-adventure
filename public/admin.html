@@ -108,54 +108,206 @@
       display: block;
       margin-bottom: 8px;
     }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s;
+    }
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    th {
+      background: #f5f5f5;
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge.pro {
+      background: #667eea;
+      color: white;
+    }
+    .badge.family {
+      background: #f59e0b;
+      color: white;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🔑 Admin Panel</h1>
-    <p>Add Pro/Family subscription to any user</p>
+    <p>Manage Pro/Family subscriptions</p>
 
-    <div class="info">
-      <strong>📝 How to get User ID:</strong>
-      1. Sign in to letter.biblefunland.com<br>
-      2. Open Console (Cmd+Option+J)<br>
-      3. Type: <code>window.Clerk.user.id</code><br>
-      4. Copy the user ID (starts with "user_")
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('add')">➕ Add Subscription</button>
+      <button class="tab" onclick="switchTab('list')">👥 View Pro Users</button>
     </div>
 
-    <form id="addProForm">
-      <label for="userId">Clerk User ID</label>
-      <input 
-        type="text" 
-        id="userId" 
-        placeholder="user_2abc123xyz..." 
-        required
-      >
+    <div id="addTab" class="tab-content active">
 
-      <label for="plan">Subscription Plan</label>
-      <select id="plan" required>
-        <option value="pro">Pro ($4.99/month)</option>
-        <option value="family">Family ($9.99/month)</option>
-      </select>
+    <div id="addTab" class="tab-content active">
+      <div class="info">
+        <strong>📝 How to get User ID:</strong>
+        1. Sign in to letter.biblefunland.com<br>
+        2. Open Console (Cmd+Option+J)<br>
+        3. Type: <code>window.Clerk.user.id</code><br>
+        4. Copy the user ID (starts with "user_")
+      </div>
 
-      <label for="adminKey">Admin Key</label>
-      <input 
-        type="password" 
-        id="adminKey" 
-        placeholder="Enter admin key" 
-        value="bible-admin-2024"
-        required
-      >
+      <form id="addProForm">
+        <label for="userId">Clerk User ID</label>
+        <input 
+          type="text" 
+          id="userId" 
+          placeholder="user_2abc123xyz..." 
+          required
+        >
 
-      <button type="submit" id="submitBtn">
-        ✨ Add Subscription
-      </button>
-    </form>
+        <label for="plan">Subscription Plan</label>
+        <select id="plan" required>
+          <option value="pro">Pro ($4.99/month)</option>
+          <option value="family">Family ($9.99/month)</option>
+        </select>
 
-    <div id="result" class="result"></div>
+        <label for="adminKey">Admin Key</label>
+        <input 
+          type="password" 
+          id="adminKey" 
+          placeholder="Enter admin key" 
+          value="bible-admin-2024"
+          required
+        >
+
+        <button type="submit" id="submitBtn">
+          ✨ Add Subscription
+        </button>
+      </form>
+
+      <div id="result" class="result"></div>
+    </div>
+
+    <div id="listTab" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0;">Active Pro Users</h3>
+        <button onclick="loadUsers()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div id="usersList">
+        <div class="loading">Click Refresh to load users...</div>
+      </div>
+    </div>
   </div>
 
   <script>
+    let currentAdminKey = 'bible-admin-2024';
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      if (tab === 'add') {
+        document.querySelector('.tab:nth-child(1)').classList.add('active');
+        document.getElementById('addTab').classList.add('active');
+      } else {
+        document.querySelector('.tab:nth-child(2)').classList.add('active');
+        document.getElementById('listTab').classList.add('active');
+        loadUsers();
+      }
+    }
+
+    async function loadUsers() {
+      const usersList = document.getElementById('usersList');
+      usersList.innerHTML = '<div class="loading">⏳ Loading users...</div>';
+
+      try {
+        const response = await fetch(`/api/admin/list-users?adminKey=${encodeURIComponent(currentAdminKey)}`);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          if (data.users.length === 0) {
+            usersList.innerHTML = '<div class="loading">No Pro users found</div>';
+            return;
+          }
+
+          const table = `
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Name</th>
+                  <th>Plan</th>
+                  <th>Expires</th>
+                  <th>User ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.users.map(user => `
+                  <tr>
+                    <td>${user.email}</td>
+                    <td>${user.displayName}</td>
+                    <td><span class="badge ${user.plan}">${user.plan}</span></td>
+                    <td>${user.expiresAt ? new Date(user.expiresAt).toLocaleDateString() : 'N/A'}</td>
+                    <td style="font-size: 11px; color: #666;">${user.userId.substring(0, 20)}...</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <p style="margin-top: 20px; text-align: center; color: #666; font-size: 13px;">
+              Total: ${data.count} active Pro/Family users
+            </p>
+          `;
+          usersList.innerHTML = table;
+        } else {
+          usersList.innerHTML = `<div class="loading" style="color: #dc2626;">❌ Error: ${data.error}</div>`;
+        }
+      } catch (error) {
+        usersList.innerHTML = `<div class="loading" style="color: #dc2626;">❌ Network error: ${error.message}</div>`;
+      }
+    }
     const form = document.getElementById('addProForm');
     const resultDiv = document.getElementById('result');
     const submitBtn = document.getElementById('submitBtn');
@@ -166,6 +318,7 @@
       const userId = document.getElementById('userId').value.trim();
       const plan = document.getElementById('plan').value;
       const adminKey = document.getElementById('adminKey').value.trim();
+      currentAdminKey = adminKey;
 
       if (!userId || !adminKey) {
         showResult('Please fill in all fields', 'error');
