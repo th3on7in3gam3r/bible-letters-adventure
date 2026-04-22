@@ -278,6 +278,13 @@ export default function App() {
           </motion.button>
         )}
 
+        {/* DEV indicator — outside AnimatePresence to avoid multiple-children warning */}
+        {import.meta.env.DEV && (
+          <div className="fixed bottom-3 right-3 z-[120] rounded-full px-3 py-1 bg-black/70 text-white text-[10px] uppercase tracking-wider font-black">
+            Words: {wordSource === "turso" ? "Turso" : "Fallback"}
+          </div>
+        )}
+
         {/* Main Content */}
         <AnimatePresence mode="wait">
           {currentScreen === "HOME" && (
@@ -294,11 +301,6 @@ export default function App() {
               progressCount={progress.length}
               totalCount={words.length}
             />
-          )}
-          {import.meta.env.DEV && (
-            <div className="fixed bottom-3 right-3 z-[120] rounded-full px-3 py-1 bg-black/70 text-white text-[10px] uppercase tracking-wider font-black">
-              Words: {wordSource === "turso" ? "Turso" : "Fallback"}
-            </div>
           )}
           {currentScreen === "STATS" && (
             <StatsDashboard
