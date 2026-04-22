@@ -292,7 +292,7 @@
                     <td>${user.displayName}</td>
                     <td><span class="badge ${user.plan}">${user.plan}</span></td>
                     <td>${user.expiresAt ? new Date(user.expiresAt).toLocaleDateString() : 'N/A'}</td>
-                    <td style="font-size: 11px; color: #666;">${user.userId.substring(0, 20)}...</td>
+                    <td style="font-size: 11px; color: #666; word-break: break-all;">${user.userId}</td>
                   </tr>
                 `).join('')}
               </tbody>
