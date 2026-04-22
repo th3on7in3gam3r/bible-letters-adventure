@@ -90,7 +90,7 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
   useEffect(() => {
     restartRound();
     return () => speechService.stopRepeating();
-  }, [word, difficulty, ageMode]);
+  }, [word]); // only restart when the word changes, not on difficulty/age switch
 
   useEffect(() => {
     focusInput();

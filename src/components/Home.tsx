@@ -97,31 +97,35 @@ export default function Home({
       transition={reducedMotion ? { duration: 0.01 } : undefined}
       className="game-container flex flex-col items-center justify-center text-center px-4 sm:px-6 w-full max-w-2xl mx-auto overflow-y-auto custom-scrollbar"
     >
-      <a
-        href="https://biblefunland.com"
-        target="_blank"
-        rel="noreferrer"
-        className="absolute top-4 left-4 z-20 text-sm font-bold text-blue-700 hover:text-blue-900 underline underline-offset-4 bg-white/80 px-3 py-1.5 rounded-full"
-        aria-label="Back to BibleFunLand website"
-      >
-        ← BibleFunLand
-      </a>
+      {/* ── Top navigation bar ─────────────────────────────── */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-100/60">
+        {/* Left: back to main site */}
+        <a
+          href="https://biblefunland.com"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1.5 text-xs font-black text-blue-600 hover:text-blue-800 transition-colors group"
+          aria-label="Back to BibleFunLand website"
+        >
+          <span className="text-base group-hover:-translate-x-0.5 transition-transform">←</span>
+          <span className="uppercase tracking-wider">BibleFunLand</span>
+        </a>
 
-      <button
-        onClick={() => setIsSettingsOpen(true)}
-        className="absolute top-4 right-4 z-20 bg-white/90 text-blue-600 p-2.5 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
-        aria-label="Open quick settings"
-      >
-        <Settings size={20} />
-      </button>
-
-      {/* UserBar — top left: sign in or avatar+menu */}
-      <div className="absolute top-4 left-4 z-20">
-        <UserBar isPremium={isPremium} />
+        {/* Right: UserBar + Settings */}
+        <div className="flex items-center gap-2">
+          <UserBar isPremium={isPremium} />
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-full transition-all hover:scale-105 active:scale-95"
+            aria-label="Open quick settings"
+          >
+            <Settings size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Decorative floating elements */}
-      <div className="absolute inset-0 pointer-events-none hidden xs:block overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none hidden xs:block overflow-hidden mt-14">
         <motion.div 
           animate={reducedMotion ? undefined : { y: [0, -20, 0], rotate: [0, 10, 0] }}
           transition={reducedMotion ? undefined : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -145,7 +149,7 @@ export default function Home({
           scale: [1, 1.03, 1, 1.02, 1],
         }}
         transition={reducedMotion ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="w-40 h-40 sm:w-64 sm:h-64 bg-yellow-100 rounded-[48px] sm:rounded-[72px] flex items-center justify-center mb-10 shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)] border-4 sm:border-8 border-white relative shrink-0"
+        className="w-40 h-40 sm:w-64 sm:h-64 bg-yellow-100 rounded-[48px] sm:rounded-[72px] flex items-center justify-center mt-16 mb-10 shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)] border-4 sm:border-8 border-white relative shrink-0"
       >
         <ChristianCross className="w-24 h-24 sm:w-40 sm:h-40 text-yellow-500 drop-shadow-xl" />
         <motion.div
