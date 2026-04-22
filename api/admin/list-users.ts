@@ -22,29 +22,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Get all subscriptions with user info from profiles table
+    // Get all active subscriptions
     const result = await turso.execute({
       sql: `
         SELECT 
-          s.user_id,
-          s.plan,
-          s.status,
-          s.expires_at,
-          s.created_at,
-          p.display_name,
-          p.email
-        FROM subscriptions s
-        LEFT JOIN profiles p ON s.user_id = p.id
-        WHERE s.status = 'active'
-        ORDER BY s.created_at DESC
+          user_id,
+          plan,
+          status,
+          expires_at,
+          created_at
+        FROM subscriptions
+        WHERE status = 'active'
+        ORDER BY created_at DESC
       `,
       args: [],
     });
 
     const users = result.rows.map(row => ({
       userId: row.user_id,
-      email: row.email || 'N/A',
-      displayName: row.display_name || 'N/A',
+      email: 'N/A', // Email not stored in subscriptions table
+      displayName: 'N/A', // Name not stored in subscriptions table
       plan: row.plan,
       status: row.status,
       expiresAt: row.expires_at,
