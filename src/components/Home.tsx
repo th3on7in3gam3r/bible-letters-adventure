@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
-import { motion } from "motion/react";
-import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import confetti from "canvas-confetti";
+import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn, Settings, Volume2, VolumeX, HelpCircle, Star } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/clerk-react";
 
 interface HomeProps {
   onStart: () => void;
   onOpenStats: () => void;
+  onToggleSound: (enabled: boolean) => void;
+  onOpenHowToPlay: () => void;
+  soundEnabled: boolean;
   progressCount: number;
   totalCount: number;
   key?: string;
@@ -23,23 +27,54 @@ function ChristianCross({ className }: { className?: string }) {
   );
 }
 
-interface HomeProps {
-  onStart: () => void;
-  onOpenStats: () => void;
-  progressCount: number;
-  totalCount: number;
-  key?: string;
-}
+const MOTIVATIONAL_TAGLINES = [
+  "Spell God's Word and hide it in your heart! ✨",
+  "52 Bible words. Endless joy!",
+  "Little letters, big faith adventures!",
+];
 
-export default function Home({ onStart, onOpenStats, progressCount, totalCount }: HomeProps) {
+export default function Home({
+  onStart,
+  onOpenStats,
+  onToggleSound,
+  onOpenHowToPlay,
+  soundEnabled,
+  progressCount,
+  totalCount,
+}: HomeProps) {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+  const [taglineIndex, setTaglineIndex] = useState(0);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { user } = useUser();
+  const filledStars = useMemo(() => Math.round((progressCount / Math.max(totalCount, 1)) * 10), [progressCount, totalCount]);
+  const confettiTriggered = useRef(false);
   
   useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTaglineIndex((prev) => (prev + 1) % MOTIVATIONAL_TAGLINES.length);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (confettiTriggered.current) return;
+    const stored = Number(localStorage.getItem("bible_letters_home_progress_seen") ?? "0");
+    if (progressCount > stored) {
+      confetti({
+        particleCount: 140,
+        spread: 80,
+        origin: { y: 0.55 },
+      });
+    }
+    localStorage.setItem("bible_letters_home_progress_seen", String(progressCount));
+    confettiTriggered.current = true;
+  }, [progressCount]);
 
   const buttonWidth = Math.min(screenWidth * 0.8, 400);
   const titleFontSize = screenWidth < 500 ? "text-5xl" : "text-7xl";
@@ -52,9 +87,27 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
       exit={{ opacity: 0, scale: 1.1 }}
       className="game-container flex flex-col items-center justify-center text-center px-4 sm:px-6 w-full max-w-2xl mx-auto overflow-y-auto custom-scrollbar"
     >
+      <a
+        href="https://biblefunland.com"
+        target="_blank"
+        rel="noreferrer"
+        className="absolute top-4 left-4 z-20 text-sm font-bold text-blue-700 hover:text-blue-900 underline underline-offset-4 bg-white/80 px-3 py-1.5 rounded-full"
+        aria-label="Back to BibleFunLand website"
+      >
+        ← BibleFunLand
+      </a>
+
+      <button
+        onClick={() => setIsSettingsOpen(true)}
+        className="absolute top-4 right-4 z-20 bg-white/90 text-blue-600 p-2.5 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
+        aria-label="Open quick settings"
+      >
+        <Settings size={20} />
+      </button>
+
       {/* Sign In Button - Top Left */}
       {!user && (
-        <div className="absolute top-4 left-4 z-10">
+        <div className="absolute top-16 left-4 z-10">
           <SignInButton mode="modal">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -70,7 +123,7 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
 
       {/* User Info - Top Left */}
       {user && (
-        <div className="absolute top-4 left-4 z-10 bg-green-100 px-4 py-2 rounded-full border-2 border-green-300">
+        <div className="absolute top-16 left-4 z-10 bg-green-100 px-4 py-2 rounded-full border-2 border-green-300">
           <span className="text-green-700 font-bold text-sm">
             👋 {user.firstName || user.emailAddresses[0].emailAddress.split('@')[0]}
           </span>
@@ -97,13 +150,23 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
 
       <motion.div
         animate={{ 
-          rotate: [0, -3, 3, -3, 0],
-          scale: [1, 1.05, 0.98, 1.05, 1]
+          y: [0, -10, 0, 6, 0],
+          rotate: [0, -2, 2, -2, 0],
+          scale: [1, 1.03, 1, 1.02, 1]
         }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
         className="w-40 h-40 sm:w-64 sm:h-64 bg-yellow-100 rounded-[48px] sm:rounded-[72px] flex items-center justify-center mb-10 shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)] border-4 sm:border-8 border-white relative shrink-0"
       >
         <ChristianCross className="w-24 h-24 sm:w-40 sm:h-40 text-yellow-500 drop-shadow-xl" />
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          animate={{ opacity: [0.35, 1, 0.35] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Sparkles className="absolute top-8 right-10 w-5 h-5 text-yellow-300" />
+          <Sparkles className="absolute bottom-8 left-8 w-4 h-4 text-yellow-400" />
+          <Sparkles className="absolute top-1/2 right-6 w-3 h-3 text-yellow-300" />
+        </motion.div>
         <div className="absolute -bottom-1 -right-2 sm:-bottom-4 sm:-right-4 bg-blue-500 p-2 sm:p-5 rounded-full text-white shadow-lg border-2 sm:border-4 border-white">
           <Sparkles className="w-5 h-5 sm:w-8 sm:h-8" fill="currentColor" />
         </div>
@@ -116,6 +179,19 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
         <p className={`${subtitleFontSize} font-display font-bold text-yellow-500 tracking-tight mt-[-4px]`}>
           Adventure
         </p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={taglineIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.45 }}
+            className="mt-4 text-base sm:text-lg text-blue-700 font-bold min-h-[28px]"
+            aria-live="polite"
+          >
+            {MOTIVATIONAL_TAGLINES[taglineIndex]}
+          </motion.p>
+        </AnimatePresence>
       </div>
 
       <div className="space-y-6 sm:space-y-10 flex flex-col items-center w-full">
@@ -143,22 +219,80 @@ export default function Home({ onStart, onOpenStats, progressCount, totalCount }
           <span className="text-lg sm:text-2xl font-black uppercase tracking-wider">MY STATS</span>
         </motion.button>
 
-        <div className="bg-white p-5 sm:p-8 rounded-[32px] sm:rounded-[48px] shadow-lg border-4 border-yellow-50 flex items-center justify-between w-full max-w-sm">
-          <div className="flex items-center gap-4">
+        <div className="bg-white p-5 sm:p-8 rounded-[32px] sm:rounded-[48px] shadow-lg border-4 border-yellow-50 w-full max-w-md">
+          <div className="flex items-center justify-between gap-4 mb-4">
             <div className="p-2 bg-yellow-100 rounded-2xl">
               <Trophy className="text-yellow-500" size={24} fill="currentColor" />
             </div>
-            <span className="font-black text-xl text-gray-700 tracking-tight">STARS EARNED</span>
+            <span className="font-black text-lg sm:text-xl text-gray-700 tracking-tight">STARS EARNED</span>
+            <span className="font-display font-black text-2xl sm:text-3xl text-blue-500">
+              {progressCount}/{totalCount}
+            </span>
           </div>
-          <span className="font-display font-black text-4xl text-blue-500">
-            {progressCount} <span className="text-xl text-gray-300">/</span> {totalCount}
-          </span>
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2" aria-label={`Progress stars ${progressCount} out of ${totalCount}`}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <Star
+                key={i}
+                size={24}
+                className={i < filledStars ? "text-yellow-400" : "text-gray-200"}
+                fill={i < filledStars ? "currentColor" : "none"}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
         </div>
       </div>
 
       <p className="mt-16 text-gray-400 font-bold text-sm bg-gray-50 px-6 py-2 rounded-full uppercase tracking-widest">
         Fun Bible Learning for Kids!
       </p>
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              className="absolute inset-0 bg-black/35"
+              onClick={() => setIsSettingsOpen(false)}
+              aria-label="Close quick settings"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 8 }}
+              className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border-4 border-blue-50"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Quick settings"
+            >
+              <h3 className="text-2xl font-display font-black text-blue-600 mb-5">Quick Settings</h3>
+              <button
+                onClick={() => onToggleSound(!soundEnabled)}
+                className="w-full rounded-2xl px-4 py-3 mb-3 bg-blue-50 text-blue-700 font-bold flex items-center justify-between hover:bg-blue-100 transition-all"
+                aria-label={`Turn sound ${soundEnabled ? "off" : "on"}`}
+              >
+                <span>Sound {soundEnabled ? "On" : "Off"}</span>
+                {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              </button>
+              <button
+                onClick={() => {
+                  setIsSettingsOpen(false);
+                  onOpenHowToPlay();
+                }}
+                className="w-full rounded-2xl px-4 py-3 bg-yellow-100 text-yellow-700 font-bold flex items-center justify-between hover:bg-yellow-200 transition-all"
+                aria-label="Open how to play tutorial"
+              >
+                <span>How to Play</span>
+                <HelpCircle size={18} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { BibleWord, getWordDifficulty } from "../data/words";
 import UpgradeModal from "./UpgradeModal";
 import { usePremiumStatusDB } from "../hooks/usePremiumStatusDB";
@@ -47,10 +47,34 @@ import {
   Music, 
   TreePalm,
   Layers,
-  Lock
+  Lock,
+  Search,
+  Volume2
 } from "lucide-react";
 
 const FREE_WORD_LIMIT = 5; // Users can play 5 words for free
+const WORD_PACKS = [
+  {
+    id: "creation",
+    title: "Creation",
+    words: ["Adam", "Eve", "Creation", "Noah", "Ark", "Flood", "Rainbow", "Dove"],
+  },
+  {
+    id: "jesus-miracles",
+    title: "Jesus & Miracles",
+    words: ["Jesus", "Christ", "Savior", "Disciple", "Cross", "Resurrection", "Faith", "Grace", "Light"],
+  },
+  {
+    id: "heroes-faith",
+    title: "Heroes of Faith",
+    words: ["Abraham", "Moses", "Aaron", "Daniel", "Jonah", "Joseph", "Goliath", "Israel", "Promised Land"],
+  },
+  {
+    id: "others",
+    title: "Others",
+    words: [],
+  },
+];
 
 interface WordListProps {
   words: BibleWord[];
@@ -121,7 +145,11 @@ const getWordIcon = (word: string) => {
 };
 
 const DifficultyStars = ({ level }: { level: 1 | 2 | 3 }) => (
-  <div className="flex items-center gap-0.5" aria-label={`Difficulty ${level} of 3`}>
+  <div
+    className="flex items-center gap-0.5"
+    title="1★ = once, 2★ = repeated, 3★ = mastered"
+    aria-label={`Difficulty ${level} of 3. 1 star means once, 2 stars means repeated, 3 stars means mastered.`}
+  >
     {[1, 2, 3].map((s) => (
       <Star
         key={s}
@@ -135,6 +163,7 @@ const DifficultyStars = ({ level }: { level: 1 | 2 | 3 }) => (
 
 export default function WordList({ words, completedWords, skippedWords, dueReviewWords, onSelectWord }: WordListProps) {
   const [viewMode, setViewMode] = useState<"A_TO_Z" | "PACKS">("A_TO_Z");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -160,25 +189,135 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
     onSelectWord(word);
   };
 
+  const speakWord = (word: string) => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const filteredWords = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return words;
+    return words.filter((w) => w.word.toLowerCase().includes(query));
+  }, [words, searchQuery]);
+
+  const wordsByPack = useMemo(() => {
+    const byWord = new Map(words.map((w) => [w.word, w]));
+    const used = new Set<string>();
+    const packs = WORD_PACKS.map((pack) => {
+      if (pack.id === "others") return { ...pack, entries: [] as BibleWord[] };
+      const entries = pack.words
+        .map((word) => byWord.get(word))
+        .filter((w): w is BibleWord => Boolean(w))
+        .filter((w) => {
+          used.add(w.word);
+          return true;
+        });
+      return { ...pack, entries };
+    });
+
+    const others = filteredWords.filter((w) => !used.has(w.word));
+    return packs.map((pack) =>
+      pack.id === "others"
+        ? { ...pack, entries: others }
+        : { ...pack, entries: pack.entries.filter((w) => filteredWords.some((f) => f.word === w.word)) }
+    );
+  }, [words, filteredWords]);
+
+  const renderWordCard = (wordData: BibleWord, idx: number, palette: "blue" | "purple") => {
+    const isCompleted = completedWords.includes(wordData.word);
+    const needsPractice = skippedWords.includes(wordData.word) && !isCompleted;
+    const difficulty = getWordDifficulty(wordData.word);
+    const isLocked = !isPremium && !isCompleted && completedWords.length >= FREE_WORD_LIMIT;
+
+    return (
+      <motion.button
+        key={wordData.word}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => handleWordClick(wordData)}
+        className={`
+          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2 relative text-left
+          ${isCompleted
+            ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200"
+            : isLocked
+            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-75"
+            : "bg-white text-gray-700 border-white hover:shadow-md"}
+          ${!isCompleted && !isLocked ? "opacity-90" : ""}
+          ${palette === "blue" ? "hover:border-blue-100 hover:bg-blue-50/30" : "hover:border-purple-100 hover:bg-purple-50/30"}
+        `}
+        aria-label={`Play word ${wordData.word}`}
+      >
+        {isLocked && (
+          <div className="absolute inset-0 bg-gray-900/10 rounded-3xl flex items-center justify-center backdrop-blur-[1px]">
+            <Lock size={32} className="text-gray-400" />
+          </div>
+        )}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 260,
+            damping: 20,
+            delay: 0.05 + (idx % 10) * 0.03,
+          }}
+          className={`p-3 rounded-2xl ${isCompleted ? "bg-white" : isLocked ? "bg-gray-200" : "bg-gray-50"}`}
+        >
+          {getWordIcon(wordData.word)}
+        </motion.div>
+        <div className="flex flex-col items-start flex-1 min-w-0">
+          <div className="flex items-center gap-2 w-full">
+            <span className="font-black text-xl tracking-tight leading-none mb-1 truncate">{wordData.word}</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                speakWord(wordData.word);
+              }}
+              className="ml-auto p-1.5 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 active:scale-95"
+              aria-label={`Hear pronunciation for ${wordData.word}`}
+            >
+              <Volume2 size={14} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DifficultyStars level={difficulty} />
+            {isCompleted && (
+              <div className="flex items-center gap-1.5 bg-green-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                <Trophy size={10} className="fill-current" />
+                <span className="text-[10px] font-black uppercase tracking-tighter">SOLVED</span>
+              </div>
+            )}
+            {needsPractice && (
+              <div className="flex items-center gap-1 bg-orange-400 text-white px-2 py-0.5 rounded-full shadow-sm">
+                <span className="text-[10px] font-black uppercase tracking-tighter">NEEDS PRACTICE</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.button>
+    );
+  };
+  
   const wordsByCategory = useMemo(() => {
     const grouped = new Map<string, BibleWord[]>();
-    for (const w of words) {
-      const cat = (w.category && w.category.trim()) ? w.category.trim() : "Other Words";
-      const arr = grouped.get(cat) ?? [];
+    for (const w of filteredWords) {
+      const letter = w.word[0].toUpperCase();
+      const arr = grouped.get(letter) ?? [];
       arr.push(w);
-      grouped.set(cat, arr);
+      grouped.set(letter, arr);
     }
-    for (const [cat, arr] of grouped.entries()) {
+    for (const [cat, arr] of grouped) {
       arr.sort((a, b) => a.word.localeCompare(b.word));
       grouped.set(cat, arr);
     }
-    const categories = Array.from(grouped.keys()).sort((a, b) => {
-      if (a === "Other Words") return 1;
-      if (b === "Other Words") return -1;
-      return a.localeCompare(b);
-    });
+    const categories = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
     return { grouped, categories };
-  }, [words]);
+  }, [filteredWords]);
   
   return (
     <motion.div
@@ -191,21 +330,40 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
         Pick a Word
       </h2>
 
-      <div className="flex justify-center mb-4">
-        <button
-          onClick={() => {
-            if (dueReviewWords.length > 0) onSelectWord(dueReviewWords[0]);
-          }}
-          disabled={dueReviewWords.length === 0}
-          className={`px-5 py-2.5 rounded-full text-sm sm:text-base font-black uppercase tracking-wider border-2 shadow-sm transition-colors ${
-            dueReviewWords.length > 0
-              ? "bg-orange-500 text-white border-orange-400 hover:bg-orange-600"
-              : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-          }`}
-          aria-label="Start review queue"
-        >
+      <div className="mb-4">
+        <label htmlFor="word-search" className="sr-only">Search Bible words</label>
+        <div className="relative">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <input
+            id="word-search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search Bible words..."
+            className="w-full rounded-2xl border-2 border-blue-100 bg-white pl-11 pr-4 py-3 text-base font-semibold text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            aria-label="Search Bible words"
+          />
+        </div>
+      </div>
+
+      <div className={`flex items-center justify-between gap-3 mb-4 rounded-2xl px-4 py-3 border-2 ${
+        dueReviewWords.length > 0
+          ? "bg-orange-100 border-orange-300"
+          : "bg-gray-100 border-gray-200"
+      }`}>
+        <span className={`font-black text-sm sm:text-base uppercase tracking-wide ${
+          dueReviewWords.length > 0 ? "text-orange-700" : "text-gray-500"
+        }`}>
           Review Queue: {dueReviewWords.length} due now
-        </button>
+        </span>
+        {dueReviewWords.length > 0 && (
+          <button
+            onClick={() => onSelectWord(dueReviewWords[0])}
+            className="px-4 py-2 rounded-full bg-orange-500 text-white font-black uppercase tracking-wide shadow-sm hover:bg-orange-600 active:scale-95 transition-all"
+            aria-label="Review due word now"
+          >
+            Review Now
+          </button>
+        )}
       </div>
 
       <div className="flex justify-center mb-5 sm:mb-6">
@@ -233,7 +391,7 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
       <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 custom-scrollbar pb-4">
         {viewMode === "A_TO_Z" ? (
           alphabet.map((letter) => {
-            const letterWords = words.filter(w => w.word.toUpperCase().startsWith(letter));
+            const letterWords = wordsByCategory.grouped.get(letter) ?? [];
             if (letterWords.length === 0) return null;
 
             return (
@@ -246,133 +404,26 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {letterWords.map((wordData) => {
-                    const isCompleted = completedWords.includes(wordData.word);
-                    const needsPractice = skippedWords.includes(wordData.word) && !isCompleted;
-                    const difficulty = getWordDifficulty(wordData.word);
-                    const isLocked = !isPremium && !isCompleted && completedWords.length >= FREE_WORD_LIMIT;
-                    
-                    return (
-                      <motion.button
-                        key={wordData.word}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleWordClick(wordData)}
-                        className={`
-                          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2 relative
-                          ${isCompleted 
-                            ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
-                            : isLocked
-                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                            : "bg-white border-white text-gray-700 hover:border-blue-100 hover:bg-blue-50/30"}
-                        `}
-                      >
-                        {isLocked && (
-                          <div className="absolute inset-0 bg-gray-900/10 rounded-3xl flex items-center justify-center backdrop-blur-[1px]">
-                            <Lock size={32} className="text-gray-400" />
-                          </div>
-                        )}
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ 
-                            type: "spring", 
-                            stiffness: 260, 
-                            damping: 20,
-                            delay: 0.1 + (words.indexOf(wordData) % 10) * 0.05 
-                          }}
-                          className={`p-3 rounded-2xl ${isCompleted ? 'bg-white' : isLocked ? 'bg-gray-200' : 'bg-gray-50'}`}
-                        >
-                          {getWordIcon(wordData.word)}
-                        </motion.div>
-                        <div className="flex flex-col items-start">
-                          <span className="font-black text-xl tracking-tight leading-none mb-1">{wordData.word}</span>
-                          <div className="flex items-center gap-2">
-                            <DifficultyStars level={difficulty} />
-                            {isCompleted && (
-                              <div className="flex items-center gap-1.5 bg-yellow-400 text-white px-2 py-0.5 rounded-full shadow-sm scale-90">
-                                <Trophy size={10} className="fill-current" />
-                                <span className="text-[10px] font-black uppercase tracking-tighter">SOLVED!</span>
-                              </div>
-                            )}
-                            {needsPractice && (
-                              <div className="flex items-center gap-1 bg-orange-400 text-white px-2 py-0.5 rounded-full shadow-sm scale-90">
-                                <span className="text-[10px] font-black uppercase tracking-tighter">NEEDS PRACTICE</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
+                  {letterWords.map((wordData, idx) => renderWordCard(wordData, idx, "blue"))}
                 </div>
               </div>
             );
           })
         ) : (
-          wordsByCategory.categories.map((category) => {
-            const categoryWords = wordsByCategory.grouped.get(category) ?? [];
-            if (categoryWords.length === 0) return null;
+          wordsByPack.map((pack) => {
+            if (pack.entries.length === 0) return null;
 
             return (
-              <div key={category} className="mb-10">
+              <div key={pack.id} className="mb-10">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="px-4 py-2 bg-purple-600 rounded-2xl flex items-center justify-center text-white font-display font-black text-lg shadow-md">
-                    {category}
+                    {pack.title}
                   </div>
                   <div className="h-0.5 flex-1 bg-purple-100 rounded-full" />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {categoryWords.map((wordData) => {
-                    const isCompleted = completedWords.includes(wordData.word);
-                    const needsPractice = skippedWords.includes(wordData.word) && !isCompleted;
-                    const difficulty = getWordDifficulty(wordData.word);
-                    const isLocked = !isPremium && !isCompleted && completedWords.length >= FREE_WORD_LIMIT;
-                    
-                    return (
-                      <motion.button
-                        key={wordData.word}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleWordClick(wordData)}
-                        className={`
-                          p-5 rounded-3xl flex items-center gap-4 transition-all shadow-sm border-2 relative
-                          ${isCompleted 
-                            ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
-                            : isLocked
-                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                            : "bg-white border-white text-gray-700 hover:border-purple-100 hover:bg-purple-50/30"}
-                        `}
-                      >
-                        {isLocked && (
-                          <div className="absolute inset-0 bg-gray-900/10 rounded-3xl flex items-center justify-center backdrop-blur-[1px]">
-                            <Lock size={32} className="text-gray-400" />
-                          </div>
-                        )}
-                        <div className={`p-3 rounded-2xl ${isCompleted ? 'bg-white' : isLocked ? 'bg-gray-200' : 'bg-gray-50'}`}>
-                          {getWordIcon(wordData.word)}
-                        </div>
-                        <div className="flex flex-col items-start">
-                          <span className="font-black text-xl tracking-tight leading-none mb-1">{wordData.word}</span>
-                          <div className="flex items-center gap-2">
-                            <DifficultyStars level={difficulty} />
-                            {isCompleted && (
-                              <div className="flex items-center gap-1.5 bg-yellow-400 text-white px-2 py-0.5 rounded-full shadow-sm scale-90">
-                                <Trophy size={10} className="fill-current" />
-                                <span className="text-[10px] font-black uppercase tracking-tighter">SOLVED!</span>
-                              </div>
-                            )}
-                            {needsPractice && (
-                              <div className="flex items-center gap-1 bg-orange-400 text-white px-2 py-0.5 rounded-full shadow-sm scale-90">
-                                <span className="text-[10px] font-black uppercase tracking-tighter">NEEDS PRACTICE</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
+                  {pack.entries.map((wordData, idx) => renderWordCard(wordData, idx, "purple"))}
                 </div>
               </div>
             );

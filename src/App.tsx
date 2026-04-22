@@ -244,21 +244,23 @@ export default function App() {
         )}
 
         {/* Global Settings Trigger */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => {
-            if (currentScreen !== "SETTINGS") navigateTo("SETTINGS");
-          }}
-          className={`absolute top-6 right-6 p-4 backdrop-blur-sm rounded-full transition-all shadow-sm z-50 ${
-            currentScreen === "SETTINGS"
-              ? "bg-blue-500 text-white cursor-default"
-              : "bg-white/50 text-gray-400 hover:text-blue-500 hover:bg-white"
-          }`}
-          aria-label="Open settings"
-        >
-          <Settings size={28} />
-        </motion.button>
+        {currentScreen !== "HOME" && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => {
+              if (currentScreen !== "SETTINGS") navigateTo("SETTINGS");
+            }}
+            className={`absolute top-6 right-6 p-4 backdrop-blur-sm rounded-full transition-all shadow-sm z-50 ${
+              currentScreen === "SETTINGS"
+                ? "bg-blue-500 text-white cursor-default"
+                : "bg-white/50 text-gray-400 hover:text-blue-500 hover:bg-white"
+            }`}
+            aria-label="Open settings"
+          >
+            <Settings size={28} />
+          </motion.button>
+        )}
 
         {/* Main Content */}
         <AnimatePresence mode="wait">
@@ -267,6 +269,12 @@ export default function App() {
               key="home" 
               onStart={() => navigateTo("WORDS")} 
               onOpenStats={() => navigateTo("STATS")}
+              onToggleSound={(enabled) => updateSettings({ soundEnabled: enabled })}
+              onOpenHowToPlay={() => {
+                setTutorialOpen(true);
+                setTutorialStep(0);
+              }}
+              soundEnabled={settings.soundEnabled}
               progressCount={progress.length}
               totalCount={BIBLE_WORDS.length}
             />
