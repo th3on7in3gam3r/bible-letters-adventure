@@ -4,6 +4,8 @@ import { BibleWord, getWordDifficulty } from "../data/words";
 import UpgradeModal from "./UpgradeModal";
 import { usePremiumStatusDB } from "../hooks/usePremiumStatusDB";
 import AnimatedButton from "./AnimatedButton";
+import PacksView from "./PacksView";
+import { buildPackLookup, WordPack } from "../data/packs";
 import { 
   Trophy, 
   Users, 
@@ -50,32 +52,11 @@ import {
   Layers,
   Lock,
   Search,
-  Volume2
+  Volume2,
+  ArrowLeft,
 } from "lucide-react";
 
 const FREE_WORD_LIMIT = 5; // Users can play 5 words for free
-const WORD_PACKS = [
-  {
-    id: "creation",
-    title: "Creation",
-    words: ["Adam", "Eve", "Creation", "Noah", "Ark", "Flood", "Rainbow", "Dove"],
-  },
-  {
-    id: "jesus-miracles",
-    title: "Jesus & Miracles",
-    words: ["Jesus", "Christ", "Savior", "Disciple", "Cross", "Resurrection", "Faith", "Grace", "Light"],
-  },
-  {
-    id: "heroes-faith",
-    title: "Heroes of Faith",
-    words: ["Abraham", "Moses", "Aaron", "Daniel", "Jonah", "Joseph", "Goliath", "Israel", "Promised Land"],
-  },
-  {
-    id: "others",
-    title: "Others",
-    words: [],
-  },
-];
 
 interface WordListProps {
   words: BibleWord[];
@@ -166,8 +147,11 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
   const [viewMode, setViewMode] = useState<"A_TO_Z" | "PACKS">("A_TO_Z");
   const [searchQuery, setSearchQuery] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [activePack, setActivePack] = useState<(WordPack & { words: BibleWord[] }) | null>(null);
   const reducedMotion = useReducedMotion();
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+  const allPacks = useMemo(() => buildPackLookup(words), [words]);
 
   // Check premium status from biblefunland.com database
   const { isPremium, isLoading } = usePremiumStatusDB();
@@ -205,29 +189,6 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
     if (!query) return words;
     return words.filter((w) => w.word.toLowerCase().includes(query));
   }, [words, searchQuery]);
-
-  const wordsByPack = useMemo(() => {
-    const byWord = new Map(words.map((w) => [w.word, w]));
-    const used = new Set<string>();
-    const packs = WORD_PACKS.map((pack) => {
-      if (pack.id === "others") return { ...pack, entries: [] as BibleWord[] };
-      const entries = pack.words
-        .map((word) => byWord.get(word))
-        .filter((w): w is BibleWord => Boolean(w))
-        .filter((w) => {
-          used.add(w.word);
-          return true;
-        });
-      return { ...pack, entries };
-    });
-
-    const others = filteredWords.filter((w) => !used.has(w.word));
-    return packs.map((pack) =>
-      pack.id === "others"
-        ? { ...pack, entries: others }
-        : { ...pack, entries: pack.entries.filter((w) => filteredWords.some((f) => f.word === w.word)) }
-    );
-  }, [words, filteredWords]);
 
   const renderWordCard = (wordData: BibleWord, idx: number, palette: "blue" | "purple") => {
     const isCompleted = completedWords.includes(wordData.word);
@@ -420,25 +381,34 @@ export default function WordList({ words, completedWords, skippedWords, dueRevie
               </div>
             );
           })
-        ) : (
-          wordsByPack.map((pack) => {
-            if (pack.entries.length === 0) return null;
-
-            return (
-              <div key={pack.id} className="mb-10">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="px-4 py-2 bg-purple-600 rounded-2xl flex items-center justify-center text-white font-display font-black text-lg shadow-md">
-                    {pack.title}
-                  </div>
-                  <div className="h-0.5 flex-1 bg-purple-100 rounded-full" />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {pack.entries.map((wordData, idx) => renderWordCard(wordData, idx, "purple"))}
-                </div>
+        ) : activePack ? (
+          // Pack detail view
+          <div>
+            <button
+              onClick={() => setActivePack(null)}
+              className="flex items-center gap-2 mb-4 text-gray-500 font-black text-sm hover:text-gray-700"
+              aria-label="Back to packs"
+            >
+              <ArrowLeft size={16} /> All Packs
+            </button>
+            <div className={`flex items-center gap-3 mb-5 p-4 rounded-2xl ${activePack.color} border-2 ${activePack.borderColor}`}>
+              <span className="text-3xl">{activePack.emoji}</span>
+              <div>
+                <h3 className={`font-black text-lg ${activePack.textColor}`}>{activePack.title}</h3>
+                <p className="text-gray-500 text-xs">{activePack.description}</p>
               </div>
-            );
-          })
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {activePack.words.map((wordData, idx) => renderWordCard(wordData, idx, "purple"))}
+            </div>
+          </div>
+        ) : (
+          // Pack grid
+          <PacksView
+            packs={allPacks}
+            completedWords={completedWords}
+            onSelectPack={(pack) => setActivePack(pack)}
+          />
         )}
       </div>
 

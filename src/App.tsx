@@ -22,6 +22,7 @@ import Reward from "./components/Reward";
 import SettingsScreen from "./components/Settings";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import StatsDashboard from "./components/StatsDashboard";
+import Onboarding, { AgeGroup } from "./components/Onboarding";
 import { buildPackLookup } from "./data/packs";
 
 export type Screen = "HOME" | "WORDS" | "GAME" | "SENTENCE" | "REWARD" | "SETTINGS" | "STATS";
@@ -66,8 +67,11 @@ export default function App() {
   const [tutorialSeen, setTutorialSeen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState<0 | 1 | 2>(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [ageGroup, setAgeGroup] = useState<AgeGroup>("7-9");
   const [activeWordStartMs, setActiveWordStartMs] = useState<number | null>(null);
   const [sessionHintCount, setSessionHintCount] = useState(0);
+  const [pwaPrompt, setPwaPrompt] = useState<Event | null>(null);
   const {
     progress,
     skippedWords,
@@ -117,9 +121,26 @@ export default function App() {
     try {
       const seen = localStorage.getItem("bible_letters_tutorial_seen");
       setTutorialSeen(seen === "true");
+      // Show new onboarding if never seen
+      if (seen !== "true") {
+        setShowOnboarding(true);
+      }
+      // Restore age group
+      const savedAge = localStorage.getItem("bible_letters_age_group") as AgeGroup | null;
+      if (savedAge) setAgeGroup(savedAge);
     } catch {
       setTutorialSeen(false);
     }
+  }, []);
+
+  // PWA install prompt capture
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setPwaPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   useEffect(() => {
@@ -128,6 +149,22 @@ export default function App() {
     setTutorialOpen(true);
     setTutorialStep(0);
   }, [currentScreen, tutorialSeen]);
+
+  const handleOnboardingComplete = (age: AgeGroup) => {
+    setAgeGroup(age);
+    setShowOnboarding(false);
+    setTutorialSeen(true);
+    try {
+      localStorage.setItem("bible_letters_tutorial_seen", "true");
+      localStorage.setItem("bible_letters_age_group", age);
+    } catch {}
+  };
+
+  const handleInstallPwa = () => {
+    if (!pwaPrompt) return;
+    (pwaPrompt as any).prompt?.();
+    setPwaPrompt(null);
+  };
 
   // Background Music Controller
   useEffect(() => {
@@ -173,8 +210,15 @@ export default function App() {
     setActiveWordStartMs(null);
   };
 
+  const dueReviewWords = useMemo(() => {
+    const dueSet = new Set(getWordsDueForReview());
+    return words.filter((word) => dueSet.has(word.word));
+  }, [words, getWordsDueForReview]);
+
+  const dueReviewCount = dueReviewWords.length;
+
   const orderedWords = useMemo(() => {
-    const due = new Set(getWordsDueForReview());
+    const due = new Set(dueReviewWords.map((w) => w.word));
     const needsPractice = new Set(skippedWords.filter((word) => !progress.includes(word)));
     return [...words].sort((a, b) => {
       const aNeeds = needsPractice.has(a.word) ? 1 : 0;
@@ -185,12 +229,7 @@ export default function App() {
       if (aDue !== bDue) return bDue - aDue;
       return a.word.localeCompare(b.word);
     });
-  }, [words, progress, skippedWords, getWordsDueForReview]);
-
-  const dueReviewWords = useMemo(() => {
-    const dueSet = new Set(getWordsDueForReview());
-    return words.filter((word) => dueSet.has(word.word));
-  }, [words, getWordsDueForReview]);
+  }, [words, progress, skippedWords, dueReviewWords]);
 
   useEffect(() => {
     if (progress.length >= 5) earnBadge("Word Starter (5)");
@@ -243,6 +282,16 @@ export default function App() {
             setTutorialStep((s) => (s + 1) as 0 | 1 | 2);
           }}
         />
+
+        {/* First-time Onboarding */}
+        <AnimatePresence>
+          {showOnboarding && (
+            <Onboarding
+              onComplete={handleOnboardingComplete}
+              onSkip={() => handleOnboardingComplete(ageGroup)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* HUD / Header */}
         {currentScreen !== "HOME" && (
@@ -302,7 +351,7 @@ export default function App() {
               soundEnabled={settings.soundEnabled}
               progressCount={progress.length}
               totalCount={words.length}
-              reviewDueCount={getWordsDueForReview().length}
+              reviewDueCount={dueReviewCount}
             />
           )}
           {currentScreen === "STATS" && (
@@ -321,7 +370,7 @@ export default function App() {
               wordDates={wordDates}
               playerName={playerName}
               onSetPlayerName={setPlayerName}
-              reviewDueCount={getWordsDueForReview().length}
+              reviewDueCount={dueReviewCount}
               parentMode={parentMode}
               hintUsage={hintUsage}
             />
@@ -413,6 +462,9 @@ export default function App() {
               hintUsage={hintUsage}
               parentMode={parentMode}
               onToggleParentMode={setParentMode}
+              pwaInstallable={!!pwaPrompt}
+              onInstallPwa={handleInstallPwa}
+              onOpenHowToPlay={() => setShowOnboarding(true)}
             />
           )}
         </AnimatePresence>

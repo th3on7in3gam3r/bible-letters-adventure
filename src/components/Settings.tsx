@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap } from "lucide-react";
-
+import { Volume2, VolumeX, Music, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download } from "lucide-react";
 import { soundManager } from "../services/soundService";
 
 interface SettingsProps {
@@ -18,6 +17,9 @@ interface SettingsProps {
   hintUsage: Record<string, number>;
   parentMode: boolean;
   onToggleParentMode: (enabled: boolean) => void;
+  pwaInstallable?: boolean;
+  onInstallPwa?: () => void;
+  onOpenHowToPlay?: () => void;
   key?: string;
 }
 
@@ -35,6 +37,9 @@ export default function Settings({
   hintUsage,
   parentMode,
   onToggleParentMode,
+  pwaInstallable,
+  onInstallPwa,
+  onOpenHowToPlay,
 }: SettingsProps) {
   const [showParentalControls, setShowParentalControls] = useState(false);
   const [parentalVerified, setParentalVerified] = useState(false);
@@ -165,6 +170,42 @@ export default function Settings({
             />
           </button>
         </div>
+
+        {/* How to Play */}
+        {onOpenHowToPlay && (
+          <button
+            onClick={() => { soundManager.play('click'); onOpenHowToPlay(); }}
+            className="flex items-center justify-between w-full p-4 sm:p-5 bg-blue-50 text-blue-700 rounded-3xl border border-blue-100 hover:bg-blue-100 transition-colors"
+            aria-label="Open how to play tutorial"
+          >
+            <div className="flex items-center gap-3">
+              <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div>
+                <p className="font-black text-lg sm:text-xl text-left">How to Play</p>
+                <p className="text-xs sm:text-sm opacity-70 font-medium">Replay the tutorial</p>
+              </div>
+            </div>
+            <ChevronRight size={18} />
+          </button>
+        )}
+
+        {/* PWA Install */}
+        {pwaInstallable && onInstallPwa && (
+          <button
+            onClick={() => { soundManager.play('click'); onInstallPwa(); }}
+            className="flex items-center justify-between w-full p-4 sm:p-5 bg-green-50 text-green-700 rounded-3xl border border-green-100 hover:bg-green-100 transition-colors"
+            aria-label="Install app on your device"
+          >
+            <div className="flex items-center gap-3">
+              <Download className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div>
+                <p className="font-black text-lg sm:text-xl text-left">Install App</p>
+                <p className="text-xs sm:text-sm opacity-70 font-medium">Play offline, anytime!</p>
+              </div>
+            </div>
+            <ChevronRight size={18} />
+          </button>
+        )}
 
         {/* Parental Controls Section */}
         <div className="mt-12 border-t-2 border-gray-100 pt-8">

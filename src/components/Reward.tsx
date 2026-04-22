@@ -191,12 +191,14 @@ export default function Reward({ wordData, soundEnabled, milestone, rewardMultip
         <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8" />
       </motion.button>
 
-      <div className="mt-4 text-xs sm:text-sm font-bold text-gray-500 bg-white/70 rounded-full px-4 py-2 border border-gray-100">
-        Reward boost: x{rewardMultiplier.toFixed(2)} {hintCount > 0 ? `(hints used: ${hintCount})` : "(no hints used)"}
+      <div className="mt-4 text-xs sm:text-sm font-bold text-green-700 bg-green-50 rounded-full px-4 py-2 border border-green-100">
+        Daily goal: {dailyGoal.completedToday}/{dailyGoal.goal} words today {dailyGoal.completedToday >= dailyGoal.goal ? "✅" : "🎯"}
       </div>
-      <div className="mt-2 text-xs sm:text-sm font-bold text-green-700 bg-green-50 rounded-full px-4 py-2 border border-green-100">
-        Daily goal progress: {dailyGoal.completedToday}/{dailyGoal.goal}
-      </div>
+      {hintCount === 0 && (
+        <div className="mt-2 text-xs font-bold text-yellow-700 bg-yellow-50 rounded-full px-4 py-2 border border-yellow-100">
+          ⭐ No hints used — perfect spelling!
+        </div>
+      )}
     </motion.div>
   );
 }

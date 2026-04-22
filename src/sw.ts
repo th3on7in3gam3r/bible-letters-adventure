@@ -1,11 +1,12 @@
 /// <reference lib="webworker" />
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
+import type { PrecacheEntry } from "workbox-precaching";
 
 declare let self: ServiceWorkerGlobalScope;
 declare global {
   interface ServiceWorkerGlobalScope {
-    __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
+    __WB_MANIFEST: Array<PrecacheEntry | string>;
   }
 }
 

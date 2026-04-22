@@ -4,6 +4,7 @@ import confetti from "canvas-confetti";
 import { Play, Trophy, Bird, Leaf, Sparkles, BarChart3, LogIn, Settings, Volume2, VolumeX, HelpCircle, Star, Calendar } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/clerk-react";
 import AnimatedButton from "./AnimatedButton";
+import CrossPromo from "./CrossPromo";
 
 interface HomeProps {
   onStart: () => void;
@@ -277,6 +278,8 @@ export default function Home({
       <p className="mt-16 text-gray-400 font-bold text-sm bg-gray-50 px-6 py-2 rounded-full uppercase tracking-widest">
         Fun Bible Learning for Kids!
       </p>
+
+      <CrossPromo />
 
       <AnimatePresence>
         {isSettingsOpen && (
