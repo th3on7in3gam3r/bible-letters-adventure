@@ -179,23 +179,31 @@ export default function App() {
 
   // Background Music Controller
   useEffect(() => {
-    if (settings.musicEnabled) {
-      audioRef.current?.play().catch(() => {
-        // Browser might block auto-play until first interaction
-      });
-    } else {
-      audioRef.current?.pause();
-    }
-  }, [settings.musicEnabled]);
+    const audio = audioRef.current;
+    if (!audio) return;
 
-  // Handle first interaction to start music if enabled
-  useEffect(() => {
-    const startMusic = () => {
-      if (settings.musicEnabled) audioRef.current?.play().catch(() => {});
-      window.removeEventListener('click', startMusic);
-    };
-    window.addEventListener('click', startMusic);
-    return () => window.removeEventListener('click', startMusic);
+    if (settings.musicEnabled) {
+      // Try to play immediately; if blocked (autoplay policy), wait for first click
+      const tryPlay = () => audio.play().catch(() => {});
+      tryPlay();
+
+      // Fallback: start on first user interaction if still paused
+      const onFirstClick = () => {
+        if (audio.paused && settings.musicEnabled) audio.play().catch(() => {});
+        window.removeEventListener('click', onFirstClick);
+        window.removeEventListener('touchstart', onFirstClick);
+      };
+      window.addEventListener('click', onFirstClick);
+      window.addEventListener('touchstart', onFirstClick);
+      return () => {
+        window.removeEventListener('click', onFirstClick);
+        window.removeEventListener('touchstart', onFirstClick);
+      };
+    } else {
+      // Immediately pause and reset
+      audio.pause();
+      audio.currentTime = 0;
+    }
   }, [settings.musicEnabled]);
 
   const navigateTo = (screen: Screen, word: BibleWord | null = null) => {
