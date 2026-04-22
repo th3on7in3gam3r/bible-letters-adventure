@@ -179,9 +179,14 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
     focusInput();
   };
 
-  const putLetterInSlot = (char: string) => {
-    const targetIndex = placed.findIndex((entry) => entry === null);
-    if (targetIndex === -1) return;
+  const putLetterInSlot = (char: string, tileId: string, slotIndex?: number) => {
+    // If slotIndex provided (from drag), use it; otherwise find first empty slot (tap)
+    const targetIndex = slotIndex !== undefined
+      ? slotIndex
+      : placed.findIndex((entry) => entry === null);
+
+    if (targetIndex === -1 || placed[targetIndex] !== null) return;
+
     setAttempts((prev) => prev + 1);
     const correct = letters[targetIndex] === char;
     onAttempt(correct);
@@ -195,7 +200,7 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
     next[targetIndex] = char;
     setPlaced(next);
     setTiles((prev) => {
-      const idx = prev.findIndex((t) => t.char === char);
+      const idx = prev.findIndex((t) => t.id === tileId);
       if (idx === -1) return prev;
       const copy = [...prev];
       copy.splice(idx, 1);
@@ -203,6 +208,25 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
     });
     if (next.every((entry, i) => entry === letters[i])) {
       completeWord();
+    }
+  };
+
+  const handleDragEnd = (event: PointerEvent | MouseEvent | TouchEvent, info: { point: { x: number; y: number } }, tile: LetterTile) => {
+    const slots = document.querySelectorAll(".letter-slot");
+    let nearestIndex = -1;
+    let minDist = 80; // px threshold
+
+    slots.forEach((slot, index) => {
+      if (placed[index] !== null) return;
+      const rect = slot.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dist = Math.hypot(info.point.x - cx, info.point.y - cy);
+      if (dist < minDist) { minDist = dist; nearestIndex = index; }
+    });
+
+    if (nearestIndex !== -1) {
+      putLetterInSlot(tile.char, tile.id, nearestIndex);
     }
   };
 
@@ -272,58 +296,79 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
 
       {!typingMode ? (
         <>
-          {/* Letter tiles — 3D style for ages 3-6, standard for others */}
-          <div className={`grid gap-3 mb-5 ${isYoungKid ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-3"}`}>
+          {/* Draggable letter tiles */}
+          <div className={`grid gap-3 mb-6 ${isYoungKid ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-3 sm:grid-cols-4"}`}>
             {tiles.map((tile) => (
-              <motion.button
+              <motion.div
                 key={tile.id}
-                whileTap={{ scale: 0.92, y: 4 }}
-                whileHover={{ scale: 1.05, y: -2 }}
-                initial={{ opacity: 0, scale: 0.8 }}
+                drag
+                dragSnapToOrigin
+                dragMomentum={false}
+                dragElastic={0.15}
+                onDragEnd={(e, info) => handleDragEnd(e as any, info, tile)}
+                onClick={() => putLetterInSlot(tile.char, tile.id)}
+                whileHover={{ scale: 1.06, y: -3 }}
+                whileTap={{ scale: 0.94 }}
+                whileDrag={{ scale: 1.15, zIndex: 50, boxShadow: "0 16px 32px rgba(0,0,0,0.25)", rotate: 3 }}
+                initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                onClick={() => putLetterInSlot(tile.char)}
                 className={`
-                  font-black text-center select-none
+                  cursor-grab active:cursor-grabbing font-black text-center select-none touch-none
                   ${isYoungKid
                     ? `rounded-3xl bg-gradient-to-b from-yellow-300 to-yellow-400 text-blue-800
                        border-b-[6px] border-yellow-600 border-x-2 border-t-2 border-yellow-500
                        shadow-[0_6px_0_#92400e,0_8px_16px_rgba(0,0,0,0.15)]
-                       active:shadow-[0_2px_0_#92400e] active:translate-y-1
-                       py-6 min-h-20 text-5xl sm:text-6xl`
-                    : `rounded-2xl border-4 border-yellow-300 bg-white py-4 min-h-14 ${ageClasses.tile} shadow-sm`
+                       py-6 min-h-20 text-5xl sm:text-6xl flex items-center justify-center`
+                    : `rounded-2xl bg-gradient-to-b from-white to-gray-50 text-blue-700
+                       border-b-4 border-yellow-400 border-x border-t border-yellow-200
+                       shadow-[0_4px_0_#ca8a04,0_6px_12px_rgba(0,0,0,0.1)]
+                       py-4 min-h-14 ${ageClasses.tile} flex items-center justify-center`
                   }
                 `}
-                aria-label={`Place letter ${tile.char}`}
+                aria-label={`Drag or tap letter ${tile.char}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && putLetterInSlot(tile.char, tile.id)}
               >
                 {tile.char}
-              </motion.button>
+              </motion.div>
             ))}
           </div>
 
-          {/* Answer slots */}
+          {/* Drop slots */}
           <div className="flex justify-center gap-2 mb-4 flex-wrap">
             {letters.map((_, index) => {
-              const value = placed[index] ?? (difficulty === "easy" && index === 0 ? firstHint : "_");
+              const value = placed[index] ?? (difficulty === "easy" && index === 0 ? firstHint : null);
               const correct = placed[index] === letters[index];
+              const isEmpty = placed[index] === null;
               return (
                 <motion.div
                   key={index}
-                  animate={correct ? { scale: [1, 1.15, 1], backgroundColor: ["#ffffff", "#dcfce7", "#ffffff"] } : {}}
-                  transition={{ duration: 0.35 }}
                   className={`
-                    flex items-center justify-center font-black rounded-xl border-2
+                    letter-slot flex items-center justify-center font-black rounded-xl border-2 transition-colors
                     ${isYoungKid ? "w-14 h-14 sm:w-16 sm:h-16 text-3xl sm:text-4xl" : `w-12 h-12 sm:w-14 sm:h-14 ${ageClasses.tile}`}
                     ${correct
                       ? "border-green-400 bg-green-50 text-green-700 shadow-md"
+                      : isEmpty
+                      ? "border-dashed border-blue-200 bg-blue-50/40 text-blue-300"
                       : "border-gray-300 text-gray-400 bg-white"}
                   `}
+                  animate={correct ? { scale: [1, 1.18, 1], backgroundColor: ["#f0fdf4", "#bbf7d0", "#f0fdf4"] } : {}}
+                  transition={{ duration: 0.35 }}
                 >
-                  {value}
+                  {value ?? (isEmpty ? "_" : placed[index])}
                 </motion.div>
               );
             })}
           </div>
+
+          {/* Tap hint for young kids */}
+          {isYoungKid && tiles.length > 0 && (
+            <p className="text-center text-xs text-gray-400 font-bold mb-2">
+              👆 Drag or tap a letter!
+            </p>
+          )}
         </>
       ) : (
         <>
