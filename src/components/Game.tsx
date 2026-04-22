@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BibleWord } from "../data/words";
-import { Volume2, RefreshCw, Eye, SkipForward, Keyboard, Contrast, Timer } from "lucide-react";
+import { Volume2, RefreshCw, Eye, SkipForward, Keyboard, Contrast, Timer, Delete, Eraser } from "lucide-react";
 import confetti from "canvas-confetti";
 import { soundManager } from "../services/soundService";
 import { speechService } from "../services/speechService";
@@ -10,6 +10,7 @@ import { ANIMATION_CONFIG } from "../constants";
 interface GameProps {
   wordData: BibleWord;
   soundEnabled: boolean;
+  ageGroup?: "3-6" | "7-9" | "10-12";
   onWin: (result: { starsEarned: number; attempts: number; hintsUsed: number; elapsedMs: number }) => void;
   onSkip: () => void;
   onAttempt: (isCorrect: boolean) => void;
@@ -41,11 +42,12 @@ const getEmoji = (word: string) => {
   return "✨";
 }
 
-export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt, onHintUse }: GameProps) {
+export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, onSkip, onAttempt, onHintUse }: GameProps) {
   const word = wordData.word.toUpperCase();
   const letters = useMemo(() => word.replace(/\s/g, "").split(""), [word]);
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [ageMode, setAgeMode] = useState<AgeMode>("7-9");
+  const isYoungKid = ageGroup === "3-6";
+  const [difficulty, setDifficulty] = useState<Difficulty>(isYoungKid ? "easy" : "easy");
+  const [ageMode, setAgeMode] = useState<AgeMode>(ageGroup);
   const [showHint, setShowHint] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
   const [placed, setPlaced] = useState<(string | null)[]>([]);
@@ -60,9 +62,10 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
   const [shakeInput, setShakeInput] = useState(false);
   const [hardRemaining, setHardRemaining] = useState(45);
   const firstHint = word[0];
-  const typingMode = difficulty !== "easy";
+  const typingMode = isYoungKid ? false : difficulty !== "easy";
   const ageClasses = AGE_CONFIG[ageMode];
   const toastTimerRef = useRef<number | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const restartRound = () => {
     const mapped = letters.map((char, index) => ({ id: `${char}-${index}-${Math.random()}`, char }));
@@ -77,10 +80,21 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
     setStartMs(Date.now());
   };
 
+  const focusInput = () => {
+    if (!typingMode) return;
+    inputRef.current?.focus();
+    // Helps iOS bring focused input into view.
+    window.setTimeout(() => inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+  };
+
   useEffect(() => {
     restartRound();
     return () => speechService.stopRepeating();
   }, [word, difficulty, ageMode]);
+
+  useEffect(() => {
+    focusInput();
+  }, [typingMode]);
 
   useEffect(() => {
     if (difficulty !== "hard" || completed) return;
@@ -153,6 +167,18 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
     }
   };
 
+  const appendTypedChar = (char: string) => {
+    const next = `${typedAnswer}${char}`;
+    setTypedAnswer(next);
+    checkTyped(next);
+    focusInput();
+  };
+
+  const backspaceTyped = () => {
+    setTypedAnswer((prev) => prev.slice(0, -1));
+    focusInput();
+  };
+
   const putLetterInSlot = (char: string) => {
     const targetIndex = placed.findIndex((entry) => entry === null);
     if (targetIndex === -1) return;
@@ -181,7 +207,10 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
   };
 
   return (
-    <div className={`game-container w-full max-w-3xl mx-auto px-4 ${highContrast ? "bg-white text-black" : ""}`}>
+    <div
+      className={`game-container w-full max-w-3xl mx-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] ${highContrast ? "bg-white text-black" : ""}`}
+      onClick={focusInput}
+    >
       <div className="text-center mb-5">
         <div className="text-6xl mb-2" aria-hidden="true">{getEmoji(wordData.word)}</div>
         <h2 className="font-display font-black text-blue-700 text-4xl sm:text-6xl">{word}</h2>
@@ -217,18 +246,21 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 justify-center mb-3">
-        {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
-          <button key={d} onClick={() => setDifficulty(d)} className={`px-4 py-2 rounded-full font-black uppercase ${difficulty === d ? "bg-blue-600 text-white" : "bg-white border text-gray-700"}`} aria-label={`Set ${d} difficulty`}>
-            {d === "hard" ? <span className="inline-flex items-center gap-1"><Timer size={14} />{d}</span> : d}
-          </button>
-        ))}
-        {(["3-6", "7-9", "10-12"] as AgeMode[]).map((mode) => (
-          <button key={mode} onClick={() => setAgeMode(mode)} className={`px-4 py-2 rounded-full font-black ${ageMode === mode ? "bg-green-600 text-white" : "bg-white border text-gray-700"}`} aria-label={`Set age mode ${mode}`}>
-            {mode}
-          </button>
-        ))}
-      </div>
+      {/* Difficulty & age controls — hidden for ages 3-6 */}
+      {!isYoungKid && (
+        <div className="flex flex-wrap gap-2 justify-center mb-3">
+          {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
+            <button key={d} onClick={() => setDifficulty(d)} className={`px-4 py-2 rounded-full font-black uppercase ${difficulty === d ? "bg-blue-600 text-white" : "bg-white border text-gray-700"}`} aria-label={`Set ${d} difficulty`}>
+              {d === "hard" ? <span className="inline-flex items-center gap-1"><Timer size={14} />{d}</span> : d}
+            </button>
+          ))}
+          {(["3-6", "7-9", "10-12"] as AgeMode[]).map((mode) => (
+            <button key={mode} onClick={() => setAgeMode(mode)} className={`px-4 py-2 rounded-full font-black ${ageMode === mode ? "bg-green-600 text-white" : "bg-white border text-gray-700"}`} aria-label={`Set age mode ${mode}`}>
+              {mode}
+            </button>
+          ))}
+        </div>
+      )}
 
       {showHint && difficulty !== "hard" && (
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-3 text-center font-semibold text-yellow-900 mb-4">
@@ -240,14 +272,14 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
 
       {!typingMode ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
             {tiles.map((tile) => (
               <motion.button
                 key={tile.id}
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ scale: 1.03 }}
                 onClick={() => putLetterInSlot(tile.char)}
-                className={`rounded-2xl border-4 border-yellow-300 bg-white py-4 min-h-12 ${ageClasses.tile} font-black text-blue-700 shadow-sm`}
+                className={`rounded-2xl border-4 border-yellow-300 bg-white py-4 min-h-14 ${ageClasses.tile} font-black text-blue-700 shadow-sm`}
                 aria-label={`Place letter ${tile.char}`}
               >
                 {tile.char}
@@ -273,6 +305,7 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
       ) : (
         <>
           <motion.input
+            ref={inputRef}
             animate={shakeInput ? { x: [0, -8, 8, -6, 6, 0] } : {}}
             value={typedAnswer}
             onChange={(e) => {
@@ -280,27 +313,45 @@ export default function Game({ wordData, soundEnabled, onWin, onSkip, onAttempt,
               setTypedAnswer(next);
               checkTyped(next);
             }}
+            inputMode="text"
+            autoCapitalize="characters"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder={difficulty === "medium" ? `${firstHint}${"_".repeat(Math.max(letters.length - 1, 0))}` : "Type the word"}
             className={`w-full rounded-2xl border-4 border-blue-200 p-4 text-center tracking-[0.4em] font-black ${ageClasses.input} uppercase`}
             aria-label="Type the correct spelling"
           />
-          <div className="mt-3 p-3 rounded-2xl bg-blue-50 border border-blue-100">
+          <div className="mt-3 p-3 rounded-2xl bg-blue-50 border border-blue-100 sticky bottom-2">
             <p className="text-xs uppercase font-bold text-blue-700 mb-2 flex items-center gap-1"><Keyboard size={14} /> Letter Bank</p>
-            <div className="flex flex-wrap gap-1">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
               {letters.map((char, idx) => (
                 <button
                   key={`${char}-${idx}`}
-                  onClick={() => {
-                    const next = `${typedAnswer}${char}`;
-                    setTypedAnswer(next);
-                    checkTyped(next);
-                  }}
-                  className="w-10 h-10 rounded-lg border bg-white font-black text-blue-700"
+                  onClick={() => appendTypedChar(char)}
+                  className="h-12 rounded-lg border bg-white font-black text-blue-700"
                   aria-label={`Add letter ${char}`}
                 >
                   {char}
                 </button>
               ))}
+              <button
+                onClick={backspaceTyped}
+                className="h-12 rounded-lg border bg-orange-100 text-orange-700 flex items-center justify-center"
+                aria-label="Backspace letter"
+              >
+                <Delete size={18} />
+              </button>
+              <button
+                onClick={() => {
+                  setTypedAnswer("");
+                  focusInput();
+                }}
+                className="h-12 rounded-lg border bg-red-100 text-red-700 flex items-center justify-center"
+                aria-label="Clear typed letters"
+              >
+                <Eraser size={18} />
+              </button>
             </div>
           </div>
         </>

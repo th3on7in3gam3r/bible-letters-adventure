@@ -390,6 +390,7 @@ export default function App() {
               key="game" 
               wordData={selectedWord} 
               soundEnabled={settings.soundEnabled}
+              ageGroup={ageGroup}
               onAttempt={recordLetterAttempt}
               onHintUse={() => {
                 recordHintUse(selectedWord.word);
