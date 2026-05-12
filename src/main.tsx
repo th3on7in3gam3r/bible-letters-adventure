@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { registerSW } from 'virtual:pwa-register';
+import { DarkModeProvider } from './hooks/useDarkMode';
 import App from './App.tsx';
 import './index.css';
 
@@ -34,9 +35,11 @@ if (!PUBLISHABLE_KEY) {
 } else {
   root.render(
     <StrictMode>
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-        <App />
-      </ClerkProvider>
+      <DarkModeProvider>
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+          <App />
+        </ClerkProvider>
+      </DarkModeProvider>
     </StrictMode>,
   );
 }

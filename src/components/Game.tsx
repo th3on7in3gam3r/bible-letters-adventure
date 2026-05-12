@@ -6,6 +6,7 @@ import confetti from "canvas-confetti";
 import { soundManager } from "../services/soundService";
 import { speechService } from "../services/speechService";
 import { ANIMATION_CONFIG } from "../constants";
+import { Announcement } from "./Announcement";
 
 interface GameProps {
   wordData: BibleWord;
@@ -61,6 +62,8 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
   const [completed, setCompleted] = useState(false);
   const [shakeInput, setShakeInput] = useState(false);
   const [hardRemaining, setHardRemaining] = useState(45);
+  const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const firstHint = word[0];
   const typingMode = isYoungKid ? false : difficulty !== "easy";
   const ageClasses = AGE_CONFIG[ageMode];
@@ -116,6 +119,47 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
     toastTimerRef.current = window.setTimeout(() => setToast(""), 1800);
   }, [toast]);
+
+  // Keyboard support for drag mode
+  useEffect(() => {
+    if (typingMode || completed) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Arrow keys to navigate tiles
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        e.preventDefault();
+        
+        const tilesPerRow = isYoungKid ? 3 : 4;
+        let newIndex = selectedTileIndex ?? 0;
+
+        if (e.key === "ArrowLeft") newIndex = Math.max(0, newIndex - 1);
+        else if (e.key === "ArrowRight") newIndex = Math.min(tiles.length - 1, newIndex + 1);
+        else if (e.key === "ArrowUp") newIndex = Math.max(0, newIndex - tilesPerRow);
+        else if (e.key === "ArrowDown") newIndex = Math.min(tiles.length - 1, newIndex + tilesPerRow);
+
+        setSelectedTileIndex(newIndex);
+        if (tiles[newIndex]) {
+          setAnnouncement(`Selected letter ${tiles[newIndex].char}`);
+        }
+      }
+      // Enter or Space to place selected tile
+      else if ((e.key === "Enter" || e.key === " ") && selectedTileIndex !== null && tiles[selectedTileIndex]) {
+        e.preventDefault();
+        const tile = tiles[selectedTileIndex];
+        putLetterInSlot(tile.char, tile.id);
+        setAnnouncement(`Placed letter ${tile.char}`);
+        setSelectedTileIndex(null);
+      }
+      // 'T' to toggle typing mode (if older child)
+      else if (e.key.toLowerCase() === 't' && !isYoungKid) {
+        e.preventDefault();
+        setDifficulty(d => d === "easy" ? "medium" : "easy");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [typingMode, completed, selectedTileIndex, tiles, isYoungKid]);
 
   const speakWord = () => {
     if (!soundEnabled) return;
@@ -235,6 +279,8 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
       className={`game-container w-full max-w-3xl mx-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] ${highContrast ? "bg-white text-black" : ""}`}
       onClick={focusInput}
     >
+      <Announcement message={announcement} type="assertive" isVisible={!!announcement} />
+      
       <div className="text-center mb-5">
         <div className="text-6xl mb-2" aria-hidden="true">{getEmoji(wordData.word)}</div>
         <h2 className="font-display font-black text-blue-700 text-4xl sm:text-6xl">{word}</h2>
@@ -298,7 +344,7 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
         <>
           {/* Draggable letter tiles */}
           <div className={`grid gap-3 mb-6 ${isYoungKid ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-3 sm:grid-cols-4"}`}>
-            {tiles.map((tile) => (
+            {tiles.map((tile, idx) => (
               <motion.div
                 key={tile.id}
                 drag
@@ -319,14 +365,16 @@ export default function Game({ wordData, soundEnabled, ageGroup = "7-9", onWin, 
                     ? `rounded-3xl bg-gradient-to-b from-yellow-300 to-yellow-400 text-blue-800
                        border-b-[6px] border-yellow-600 border-x-2 border-t-2 border-yellow-500
                        shadow-[0_6px_0_#92400e,0_8px_16px_rgba(0,0,0,0.15)]
-                       py-6 min-h-20 text-5xl sm:text-6xl flex items-center justify-center`
+                       py-6 min-h-20 text-5xl sm:text-6xl flex items-center justify-center
+                       ${selectedTileIndex === idx ? 'ring-4 ring-blue-500 ring-offset-2' : ''}`
                     : `rounded-2xl bg-gradient-to-b from-white to-gray-50 text-blue-700
                        border-b-4 border-yellow-400 border-x border-t border-yellow-200
                        shadow-[0_4px_0_#ca8a04,0_6px_12px_rgba(0,0,0,0.1)]
-                       py-4 min-h-14 ${ageClasses.tile} flex items-center justify-center`
+                       py-4 min-h-14 ${ageClasses.tile} flex items-center justify-center
+                       ${selectedTileIndex === idx ? 'ring-4 ring-blue-500 ring-offset-2' : ''}`
                   }
                 `}
-                aria-label={`Drag or tap letter ${tile.char}`}
+                aria-label={`Drag or tap letter ${tile.char} ${selectedTileIndex === idx ? '(selected)' : ''}`}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && putLetterInSlot(tile.char, tile.id)}
