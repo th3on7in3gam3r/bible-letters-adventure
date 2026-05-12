@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown } from "lucide-react";
+import { Volume2, VolumeX, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown, Moon, Sun } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
+import { useDarkMode } from "../hooks/useDarkMode";
 import { soundManager } from "../services/soundService";
 
 interface SettingsProps {
@@ -93,13 +94,13 @@ export default function Settings({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="w-full max-w-lg bg-white rounded-[40px] shadow-2xl p-6 sm:p-8 border-8 border-blue-50 relative max-h-[90dvh] flex flex-col"
+      className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl p-6 sm:p-8 border-8 border-blue-50 dark:border-gray-700 relative max-h-[90dvh] flex flex-col"
     >
       <div className="flex items-center gap-4 mb-6 sm:mb-8 shrink-0">
-        <div className="p-2 sm:p-3 bg-blue-100 rounded-2xl text-blue-600">
+        <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900 rounded-2xl text-blue-600 dark:text-blue-400">
           <Shield className="w-6 h-6 sm:w-8 sm:h-8" />
         </div>
-        <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-800 tracking-tight tracking-tighter sm:tracking-tight uppercase">Settings</h2>
+        <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-800 dark:text-white tracking-tight tracking-tighter sm:tracking-tight uppercase">Settings</h2>
       </div>
 
       <div className="space-y-4 sm:space-y-6 overflow-y-auto pr-2 custom-scrollbar pb-6">
@@ -150,14 +151,14 @@ export default function Settings({
           </div>
         )}
 
-        {/* Go Pro */}
+        {/* Go Pro — links to biblefunland.com/premium where purchase unlocks all words here */}
         {!isPremium && (
           <a
             href="https://biblefunland.com/premium?source=bible-letters-settings"
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-between w-full p-4 sm:p-5 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-3xl border border-yellow-200 hover:opacity-90 transition-opacity"
-            aria-label="Upgrade to Pro"
+            aria-label="Upgrade to Pro to unlock all 52 words"
           >
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 text-yellow-500" />
@@ -169,6 +170,8 @@ export default function Settings({
             <ChevronRight size={18} className="text-yellow-500" />
           </a>
         )}
+
+        {/* Sound Effects */}
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 rounded-3xl border border-gray-100">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className={`p-2.5 sm:p-3 rounded-2xl ${soundEnabled ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
@@ -189,6 +192,9 @@ export default function Settings({
             />
           </button>
         </div>
+
+        {/* Dark Mode */}
+        <DarkModeToggle />
 
         {/* Parent / Teacher Mode */}
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 rounded-3xl border border-gray-100">
@@ -415,5 +421,38 @@ export default function Settings({
         <ChevronRight size={24} className="rotate-90" />
       </button>
     </motion.div>
+  );
+}
+
+function DarkModeToggle() {
+  const { isDark, toggleDarkMode } = useDarkMode();
+  const isSmallScreen = window.innerWidth < 640;
+
+  return (
+    <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className={`p-2.5 sm:p-3 rounded-2xl ${isDark ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400' : 'bg-yellow-100 text-yellow-600'}`}>
+          {isDark ? <Moon className="w-5 h-5 sm:w-6 sm:h-6" /> : <Sun className="w-5 h-5 sm:w-6 sm:h-6" />}
+        </div>
+        <div>
+          <p className="font-black text-lg sm:text-xl text-gray-800 dark:text-white">Dark Mode</p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">Easy on the eyes</p>
+        </div>
+      </div>
+      <button
+        onClick={() => {
+          soundManager.play('click');
+          toggleDarkMode();
+        }}
+        className={`w-12 h-6 sm:w-16 sm:h-8 rounded-full relative transition-colors ${isDark ? 'bg-purple-500' : 'bg-gray-300'} shrink-0`}
+        aria-label={`${isDark ? 'Disable' : 'Enable'} dark mode`}
+        aria-pressed={isDark}
+      >
+        <motion.div
+          animate={{ x: isDark ? (isSmallScreen ? 24 : 32) : 4 }}
+          className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
+        />
+      </button>
+    </div>
   );
 }
