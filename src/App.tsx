@@ -341,9 +341,9 @@ export default function App() {
               key="home" 
               onStart={() => navigateTo("WORDS")} 
               onOpenStats={() => navigateTo("STATS")}
+              onOpenSettings={() => navigateTo("SETTINGS")}
               onToggleSound={(enabled) => updateSettings({ soundEnabled: enabled })}
               onOpenHowToPlay={() => setShowOnboarding(true)}
-              onOpenSettings={() => navigateTo("SETTINGS")}
               soundEnabled={settings.soundEnabled}
               progressCount={progress.length}
               totalCount={words.length}

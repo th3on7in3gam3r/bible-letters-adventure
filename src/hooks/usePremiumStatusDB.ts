@@ -41,10 +41,12 @@ export function usePremiumStatusDB() {
         const data = await response.json();
         
         // Check if user has active Pro or Family subscription
+        // Accept if status is active AND plan is pro/family
+        // expires_at check is lenient — if missing or in future, treat as active
         const hasPremium = 
           data?.status === 'active' && 
           (data?.plan === 'pro' || data?.plan === 'family') &&
-          new Date(data?.expires_at) > new Date();
+          (!data?.expires_at || new Date(data.expires_at) > new Date());
 
         setIsPremium(hasPremium);
       } catch (error) {
