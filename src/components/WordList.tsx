@@ -56,7 +56,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-const FREE_WORD_LIMIT = 5; // Users can play 5 words for free
+const FREE_WORD_LIMIT = 3; // Users can play 3 words for free
 
 interface WordListProps {
   words: BibleWord[];
