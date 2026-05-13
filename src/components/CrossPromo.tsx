@@ -43,7 +43,7 @@ export default function CrossPromo() {
         <div className="h-px flex-1 bg-gray-100" />
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+      <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar justify-center flex-wrap sm:flex-nowrap">
         {PROMO_CARDS.map((card, i) => (
           <motion.a
             key={card.title}
