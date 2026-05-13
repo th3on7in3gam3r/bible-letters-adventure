@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown, Moon, Sun } from "lucide-react";
+import { Volume2, VolumeX, Shield, ChevronRight, Lock, Trash2, AlertTriangle, ChartNoAxesCombined, Clock3, Target, GraduationCap, HelpCircle, Download, ExternalLink, Crown } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
-import { useDarkMode } from "../hooks/useDarkMode";
 import { soundManager } from "../services/soundService";
 
 interface SettingsProps {
@@ -48,7 +47,6 @@ export default function Settings({
   const [error, setError] = useState(false);
   const isSmallScreen = window.innerWidth < 640;
 
-  // Simple math challenge for parental verification
   const challenge = { a: 7, b: 8, result: 15 };
 
   const handleVerify = () => {
@@ -80,13 +78,10 @@ export default function Settings({
           : "None"
       }`,
     ].join("\n");
-
     try {
       await navigator.clipboard.writeText(report);
       alert("Progress report copied to clipboard.");
-    } catch {
-      alert(report);
-    }
+    } catch { alert(report); }
   };
 
   return (
@@ -94,18 +89,18 @@ export default function Settings({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl p-6 sm:p-8 border-8 border-blue-50 dark:border-gray-700 relative max-h-[90dvh] flex flex-col"
+      className="w-full max-w-lg bg-white rounded-[40px] shadow-2xl p-6 sm:p-8 border-8 border-blue-50 relative max-h-[90dvh] flex flex-col"
     >
       <div className="flex items-center gap-4 mb-6 sm:mb-8 shrink-0">
-        <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900 rounded-2xl text-blue-600 dark:text-blue-400">
+        <div className="p-2 sm:p-3 bg-blue-100 rounded-2xl text-blue-600">
           <Shield className="w-6 h-6 sm:w-8 sm:h-8" />
         </div>
-        <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-800 dark:text-white tracking-tight tracking-tighter sm:tracking-tight uppercase">Settings</h2>
+        <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-800 tracking-tighter uppercase">Settings</h2>
       </div>
 
-      <div className="space-y-4 sm:space-y-6 overflow-y-auto pr-2 custom-scrollbar pb-6">
+      <div className="space-y-4 sm:space-y-5 overflow-y-auto pr-2 custom-scrollbar pb-6">
 
-        {/* BibleFunLand connection status */}
+        {/* BibleFunLand connection */}
         {user ? (
           <div className="flex items-center justify-between p-4 bg-green-50 rounded-2xl border border-green-100">
             <div className="flex items-center gap-3">
@@ -124,13 +119,7 @@ export default function Settings({
                 </p>
               </div>
             </div>
-            <a
-              href="https://biblefunland.com/profile"
-              target="_blank"
-              rel="noreferrer"
-              className="text-blue-500 hover:text-blue-700"
-              aria-label="View profile on BibleFunLand"
-            >
+            <a href="https://biblefunland.com/profile" target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700">
               <ExternalLink size={16} />
             </a>
           </div>
@@ -140,26 +129,16 @@ export default function Settings({
               <p className="font-black text-sm text-blue-700">Save progress to BibleFunLand</p>
               <p className="text-xs text-blue-500 font-medium">Sign in to sync across devices</p>
             </div>
-            <a
-              href="https://biblefunland.com"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-xs font-black text-blue-600 bg-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-200"
-            >
+            <a href="https://biblefunland.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-black text-blue-600 bg-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-200">
               Sign In <ExternalLink size={11} />
             </a>
           </div>
         )}
 
-        {/* Go Pro — links to biblefunland.com/premium where purchase unlocks all words here */}
+        {/* Go Pro */}
         {!isPremium && (
-          <a
-            href="https://biblefunland.com/premium?source=bible-letters-settings"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-between w-full p-4 sm:p-5 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-3xl border border-yellow-200 hover:opacity-90 transition-opacity"
-            aria-label="Upgrade to Pro to unlock all 52 words"
-          >
+          <a href="https://biblefunland.com/premium?source=bible-letters-settings" target="_blank" rel="noreferrer"
+            className="flex items-center justify-between w-full p-4 sm:p-5 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-3xl border border-yellow-200 hover:opacity-90 transition-opacity">
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 text-yellow-500" />
               <div>
@@ -186,15 +165,9 @@ export default function Settings({
             onClick={() => onToggleSound(!soundEnabled)}
             className={`w-12 h-6 sm:w-16 sm:h-8 rounded-full relative transition-colors ${soundEnabled ? 'bg-green-500' : 'bg-gray-300'} shrink-0`}
           >
-            <motion.div 
-              animate={{ x: soundEnabled ? (isSmallScreen ? 24 : 32) : 4 }}
-              className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
-            />
+            <motion.div animate={{ x: soundEnabled ? (isSmallScreen ? 24 : 32) : 4 }} className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm" />
           </button>
         </div>
-
-        {/* Dark Mode */}
-        <DarkModeToggle />
 
         {/* Parent / Teacher Mode */}
         <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 rounded-3xl border border-gray-100">
@@ -204,7 +177,7 @@ export default function Settings({
             </div>
             <div>
               <p className="font-black text-lg sm:text-xl text-gray-800">Parent / Teacher View</p>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Shows verse refs & accuracy details</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Shows verse refs, definitions & accuracy</p>
             </div>
           </div>
           <button
@@ -213,19 +186,28 @@ export default function Settings({
             aria-label={`${parentMode ? 'Disable' : 'Enable'} parent teacher mode`}
             aria-pressed={parentMode}
           >
-            <motion.div
-              animate={{ x: parentMode ? (isSmallScreen ? 24 : 32) : 4 }}
-              className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
-            />
+            <motion.div animate={{ x: parentMode ? (isSmallScreen ? 24 : 32) : 4 }} className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm" />
           </button>
         </div>
+
+        {/* What Parent/Teacher mode does */}
+        {parentMode && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="bg-purple-50 rounded-2xl p-4 border border-purple-100">
+            <p className="text-xs font-bold text-purple-700 mb-2">👨‍👩‍👧 Parent/Teacher mode is ON:</p>
+            <ul className="text-xs text-purple-600 space-y-1 list-disc list-inside">
+              <li>Bible verse references shown on word cards</li>
+              <li>Word definitions visible in Stats history</li>
+              <li>Hints-per-word accuracy breakdown</li>
+              <li>Detailed progress export report</li>
+            </ul>
+          </motion.div>
+        )}
 
         {/* How to Play */}
         {onOpenHowToPlay && (
           <button
             onClick={() => { soundManager.play('click'); onOpenHowToPlay(); }}
             className="flex items-center justify-between w-full p-4 sm:p-5 bg-blue-50 text-blue-700 rounded-3xl border border-blue-100 hover:bg-blue-100 transition-colors"
-            aria-label="Open how to play tutorial"
           >
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -243,7 +225,6 @@ export default function Settings({
           <button
             onClick={() => { soundManager.play('click'); onInstallPwa(); }}
             className="flex items-center justify-between w-full p-4 sm:p-5 bg-green-50 text-green-700 rounded-3xl border border-green-100 hover:bg-green-100 transition-colors"
-            aria-label="Install app on your device"
           >
             <div className="flex items-center gap-3">
               <Download className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -256,15 +237,12 @@ export default function Settings({
           </button>
         )}
 
-        {/* Parental Controls Section */}
-        <div className="mt-12 border-t-2 border-gray-100 pt-8">
+        {/* Parental Controls */}
+        <div className="mt-8 border-t-2 border-gray-100 pt-6">
           {!showParentalControls ? (
             <button 
-              onClick={() => {
-                soundManager.play('click');
-                setShowParentalControls(true);
-              }}
-              className="flex items-center justify-between w-full p-6 bg-yellow-50 text-yellow-700 rounded-3xl border-2 border-yellow-100 hover:bg-yellow-100 transition-colors group"
+              onClick={() => { soundManager.play('click'); setShowParentalControls(true); }}
+              className="flex items-center justify-between w-full p-5 bg-yellow-50 text-yellow-700 rounded-3xl border-2 border-yellow-100 hover:bg-yellow-100 transition-colors group"
             >
               <div className="flex items-center gap-4 text-left">
                 <Lock className="group-hover:scale-110 transition-transform" />
@@ -278,52 +256,25 @@ export default function Settings({
           ) : (
             <AnimatePresence mode="wait">
               {!parentalVerified ? (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-200"
-                >
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-200">
                   <p className="text-center font-black text-lg mb-4">Adults Only: Solve to Enter</p>
                   <div className="flex items-center justify-center gap-4 mb-6">
                     <span className="text-3xl font-black">{challenge.a} + {challenge.b} =</span>
-                    <input 
-                      type="number" 
-                      value={verificationValue}
-                      onChange={(e) => setVerificationValue(e.target.value)}
-                      className="w-20 p-2 bg-white/20 border-2 border-white/30 rounded-xl text-white text-3xl font-black text-center focus:outline-none focus:bg-white/30"
-                    />
+                    <input type="number" value={verificationValue} onChange={(e) => setVerificationValue(e.target.value)}
+                      className="w-20 p-2 bg-white/20 border-2 border-white/30 rounded-xl text-white text-3xl font-black text-center focus:outline-none focus:bg-white/30" />
                   </div>
                   {error && <p className="text-center text-xs font-bold text-red-200 mb-4 uppercase tracking-widest">Try again!</p>}
                   <div className="flex gap-2">
-                    <button 
-                      onClick={handleVerify}
-                      className="flex-1 py-3 bg-white text-blue-600 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform"
-                    >
-                      Verify
-                    </button>
-                    <button 
-                      onClick={() => {
-                        soundManager.play('click');
-                        setShowParentalControls(false);
-                      }}
-                      className="px-6 py-3 bg-blue-700 text-white rounded-2xl font-black uppercase text-sm"
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={handleVerify} className="flex-1 py-3 bg-white text-blue-600 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform">Verify</button>
+                    <button onClick={() => { soundManager.play('click'); setShowParentalControls(false); }} className="px-6 py-3 bg-blue-700 text-white rounded-2xl font-black uppercase text-sm">Cancel</button>
                   </div>
                 </motion.div>
               ) : (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white p-6 rounded-3xl border-4 border-red-50 space-y-4"
-                >
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-6 rounded-3xl border-4 border-red-50 space-y-4">
                   <div className="rounded-2xl border-2 border-blue-100 p-4 bg-blue-50/50">
                     <div className="flex items-center gap-2 text-blue-600 font-black uppercase tracking-wider text-xs mb-3">
-                      <ChartNoAxesCombined size={14} />
-                      Parent Dashboard
+                      <ChartNoAxesCombined size={14} /> Parent Dashboard
                     </div>
-
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <div className="bg-white rounded-xl p-2 text-center border border-blue-100">
                         <div className="text-[10px] uppercase font-black text-gray-400">Completed</div>
@@ -338,121 +289,45 @@ export default function Settings({
                         <div className="text-lg font-display font-black text-purple-600">{totalPlayMinutes}m</div>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2">
-                      <Target size={14} className="text-green-600" />
-                      Accuracy: <span className="text-green-700">{accuracyRate}%</span>
-                      <Clock3 size={14} className="text-purple-500 ml-3" />
-                      Time: <span className="text-purple-600">{totalPlayMinutes} minutes</span>
+                      <Target size={14} className="text-green-600" /> Accuracy: <span className="text-green-700">{accuracyRate}%</span>
+                      <Clock3 size={14} className="text-purple-500 ml-3" /> Time: <span className="text-purple-600">{totalPlayMinutes}m</span>
                     </div>
-
                     {completedWords.length > 0 && (
                       <div className="mb-2">
                         <div className="text-[10px] uppercase font-black text-gray-400 mb-1">Completed words</div>
-                        <div className="max-h-20 overflow-y-auto custom-scrollbar text-xs text-gray-600 bg-white rounded-xl border border-blue-100 p-2">
-                          {completedWords.join(", ")}
-                        </div>
+                        <div className="max-h-20 overflow-y-auto custom-scrollbar text-xs text-gray-600 bg-white rounded-xl border border-blue-100 p-2">{completedWords.join(", ")}</div>
                       </div>
                     )}
-
                     {skippedWords.length > 0 && (
                       <div>
                         <div className="text-[10px] uppercase font-black text-gray-400 mb-1">Needs practice</div>
-                        <div className="max-h-20 overflow-y-auto custom-scrollbar text-xs text-orange-700 bg-orange-50 rounded-xl border border-orange-100 p-2">
-                          {skippedWords.join(", ")}
-                        </div>
+                        <div className="max-h-20 overflow-y-auto custom-scrollbar text-xs text-orange-700 bg-orange-50 rounded-xl border border-orange-100 p-2">{skippedWords.join(", ")}</div>
                       </div>
                     )}
-
-                    <button
-                      onClick={exportReport}
-                      className="mt-3 w-full py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wider"
-                    >
-                      Copy Parent Report
-                    </button>
+                    <button onClick={exportReport} className="mt-3 w-full py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wider">Copy Parent Report</button>
                   </div>
-
                   <div className="flex items-center gap-3 text-red-500 mb-2">
                     <AlertTriangle size={20} />
                     <p className="font-black uppercase tracking-wider text-sm">Danger Zone</p>
                   </div>
-                  
-                  <button 
-                    onClick={() => {
-                      if (confirm("Reset all progress? This cannot be undone.")) {
-                        onResetProgress();
-                        setParentalVerified(false);
-                        setShowParentalControls(false);
-                      }
-                    }}
-                    className="flex items-center justify-between w-full p-4 bg-red-50 text-red-600 rounded-2xl border-2 border-red-100 hover:bg-red-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Trash2 size={20} />
-                      <span className="font-black text-lg">Reset Game Progress</span>
-                    </div>
+                  <button onClick={() => { if (confirm("Reset all progress? This cannot be undone.")) { onResetProgress(); setParentalVerified(false); setShowParentalControls(false); } }}
+                    className="flex items-center justify-between w-full p-4 bg-red-50 text-red-600 rounded-2xl border-2 border-red-100 hover:bg-red-100 transition-colors">
+                    <div className="flex items-center gap-3"><Trash2 size={20} /><span className="font-black text-lg">Reset Game Progress</span></div>
                   </button>
-                  
-                  <p className="text-[10px] text-gray-400 font-medium text-center italic">
-                    All completed words will be cleared from your collection.
-                  </p>
-                  
-                  <button 
-                    onClick={() => setParentalVerified(false)}
-                    className="w-full py-2 text-gray-400 font-black text-xs uppercase"
-                  >
-                    Lock Settings
-                  </button>
+                  <p className="text-[10px] text-gray-400 font-medium text-center italic">All completed words will be cleared.</p>
+                  <button onClick={() => setParentalVerified(false)} className="w-full py-2 text-gray-400 font-black text-xs uppercase">Lock Settings</button>
                 </motion.div>
               )}
             </AnimatePresence>
-          )
-          }
+          )}
         </div>
       </div>
 
-      <button 
-        onClick={() => {
-          soundManager.play('click');
-          setShowParentalControls(false);
-        }}
-        className="absolute top-6 right-6 p-2 text-gray-300 hover:text-gray-500 transition-colors"
-      >
+      <button onClick={() => { soundManager.play('click'); setShowParentalControls(false); }}
+        className="absolute top-6 right-6 p-2 text-gray-300 hover:text-gray-500 transition-colors">
         <ChevronRight size={24} className="rotate-90" />
       </button>
     </motion.div>
-  );
-}
-
-function DarkModeToggle() {
-  const { isDark, toggleDarkMode } = useDarkMode();
-  const isSmallScreen = window.innerWidth < 640;
-
-  return (
-    <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div className={`p-2.5 sm:p-3 rounded-2xl ${isDark ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400' : 'bg-yellow-100 text-yellow-600'}`}>
-          {isDark ? <Moon className="w-5 h-5 sm:w-6 sm:h-6" /> : <Sun className="w-5 h-5 sm:w-6 sm:h-6" />}
-        </div>
-        <div>
-          <p className="font-black text-lg sm:text-xl text-gray-800 dark:text-white">Dark Mode</p>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">Easy on the eyes</p>
-        </div>
-      </div>
-      <button
-        onClick={() => {
-          soundManager.play('click');
-          toggleDarkMode();
-        }}
-        className={`w-12 h-6 sm:w-16 sm:h-8 rounded-full relative transition-colors ${isDark ? 'bg-purple-500' : 'bg-gray-300'} shrink-0`}
-        aria-label={`${isDark ? 'Disable' : 'Enable'} dark mode`}
-        aria-pressed={isDark}
-      >
-        <motion.div
-          animate={{ x: isDark ? (isSmallScreen ? 24 : 32) : 4 }}
-          className="absolute top-1 left-0 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full shadow-sm"
-        />
-      </button>
-    </div>
   );
 }
