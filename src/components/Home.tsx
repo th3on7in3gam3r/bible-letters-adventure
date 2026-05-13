@@ -36,6 +36,47 @@ const TAGLINES = [
   "Little letters, big faith adventures!",
 ];
 
+// Floating letters for the desktop preview
+const FLOATING_LETTERS = ["A", "B", "C", "J", "G", "F", "L", "N"];
+const LETTER_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EF4444", "#06B6D4", "#F97316", "#EC4899"];
+
+function FloatingLetters() {
+  const reducedMotion = useReducedMotion();
+  return (
+    <div className="relative w-full h-full min-h-[280px]">
+      {FLOATING_LETTERS.map((letter, i) => {
+        const x = 20 + (i % 4) * 22;
+        const y = 10 + Math.floor(i / 4) * 45;
+        const delay = i * 0.3;
+        const size = 36 + (i % 3) * 12;
+        return (
+          <motion.div
+            key={letter}
+            animate={reducedMotion ? undefined : {
+              y: [0, -12, 0, 8, 0],
+              rotate: [0, -8, 5, -3, 0],
+              scale: [1, 1.05, 0.97, 1.02, 1],
+            }}
+            transition={{ duration: 3 + i * 0.4, repeat: Infinity, delay, ease: "easeInOut" }}
+            style={{
+              position: "absolute",
+              left: `${x}%`,
+              top: `${y}%`,
+              fontSize: size,
+              color: LETTER_COLORS[i],
+              fontFamily: "'Baloo 2', cursive",
+              fontWeight: 800,
+              textShadow: `0 4px 12px ${LETTER_COLORS[i]}40`,
+            }}
+          >
+            {letter}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Home({
   onStart,
   onOpenStats,
@@ -74,159 +115,178 @@ export default function Home({
     confettiTriggered.current = true;
   }, [progressCount]);
 
-  const isDesktop = screenWidth >= 768;
+  const isDesktop = screenWidth >= 900;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="w-full min-h-[100dvh] flex flex-col"
+      className="w-full min-h-[100dvh] flex flex-col bg-gradient-to-b from-blue-50 via-white to-yellow-50/30"
+      style={{ backgroundImage: "radial-gradient(circle, #e0e7ff22 1px, transparent 1px)", backgroundSize: "24px 24px" }}
     >
-      {/* ── Nav bar (full width) ──────────── */}
-      <div className="w-full flex items-center justify-between px-4 sm:px-8 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-100 shrink-0">
+      {/* ── Nav ──────────────────────────── */}
+      <nav className="w-full flex items-center justify-between px-5 sm:px-10 py-4 shrink-0">
         <a
           href="https://biblefunland.com"
           target="_blank"
           rel="noreferrer"
-          className="text-[11px] sm:text-xs font-black text-blue-600 uppercase tracking-wider hover:text-blue-800"
+          className="text-xs font-black text-blue-500 hover:text-blue-700 uppercase tracking-wider transition-colors"
         >
           ← BibleFunLand
         </a>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <UserBar isPremium={isPremium} />
-          <button onClick={onOpenSettings} className="bg-gray-100 text-gray-500 p-2 rounded-full hover:bg-gray-200" aria-label="Settings">
+          <button onClick={onOpenSettings} className="bg-white/80 border border-gray-200 text-gray-500 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all" aria-label="Settings">
             <Settings size={16} />
           </button>
         </div>
-      </div>
+      </nav>
 
-      {/* ── Main content ──────────────────── */}
-      <div className={`flex-1 flex ${isDesktop ? "flex-row items-center justify-center gap-16 px-12" : "flex-col items-center px-4"} py-6`}>
+      {/* ── Hero ─────────────────────────── */}
+      <main className={`flex-1 flex ${isDesktop ? "flex-row items-center" : "flex-col items-center"} justify-center gap-8 lg:gap-16 px-5 sm:px-10 lg:px-20 py-6`}>
         
-        {/* Left side (or top on mobile): Hero */}
-        <div className={`flex flex-col ${isDesktop ? "items-start text-left" : "items-center text-center"}`}>
+        {/* Left: Logo + Title + Actions */}
+        <div className={`flex flex-col ${isDesktop ? "items-start max-w-lg" : "items-center text-center w-full max-w-sm"}`}>
+          {/* Logo */}
           <motion.div
-            animate={reducedMotion ? undefined : { y: [0, -6, 0], scale: [1, 1.03, 1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className={`${isDesktop ? "w-40 h-40" : "w-20 h-20"} bg-yellow-100 rounded-[32px] flex items-center justify-center border-4 border-white relative shadow-inner mb-4`}
+            animate={reducedMotion ? undefined : { y: [0, -5, 0], scale: [1, 1.02, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className={`${isDesktop ? "w-28 h-28" : "w-20 h-20"} bg-gradient-to-br from-yellow-200 to-yellow-100 rounded-3xl flex items-center justify-center border-4 border-white shadow-lg shadow-yellow-200/50 relative mb-5`}
           >
-            <ChristianCross className={`${isDesktop ? "w-24 h-24" : "w-11 h-11"} text-yellow-500`} />
-            <Sparkles className="absolute top-2 right-2 w-3 h-3 text-yellow-300" />
-            <div className="absolute -bottom-1 -right-1 bg-blue-500 p-1.5 rounded-full text-white border-2 border-white">
-              <Sparkles className="w-2.5 h-2.5" fill="currentColor" />
-            </div>
+            <ChristianCross className={`${isDesktop ? "w-16 h-16" : "w-11 h-11"} text-yellow-500 drop-shadow-sm`} />
+            <motion.div
+              animate={reducedMotion ? undefined : { opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+              className="absolute -top-1 -right-1"
+            >
+              <Sparkles className="w-4 h-4 text-yellow-400" />
+            </motion.div>
           </motion.div>
 
-          <h1 className={`${isDesktop ? "text-6xl" : "text-4xl"} font-display font-black text-blue-600 leading-none tracking-tighter`}>
+          {/* Title */}
+          <h1 className={`${isDesktop ? "text-5xl lg:text-6xl" : "text-4xl"} font-display font-black text-blue-700 leading-[0.95] tracking-tight`}>
             Bible Letters
           </h1>
-          <p className={`${isDesktop ? "text-4xl" : "text-2xl"} font-display font-bold text-yellow-500 -mt-1`}>
+          <p className={`${isDesktop ? "text-3xl lg:text-4xl" : "text-2xl"} font-display font-bold text-yellow-500 mt-0.5`}>
             Adventure
           </p>
 
+          {/* Tagline */}
           <AnimatePresence mode="wait">
             <motion.p
               key={taglineIdx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={`${isDesktop ? "text-base" : "text-xs"} text-blue-600 font-bold mt-2 h-5`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className={`${isDesktop ? "text-base" : "text-sm"} text-blue-500 font-semibold mt-3 mb-6`}
             >
               {TAGLINES[taglineIdx]}
             </motion.p>
           </AnimatePresence>
 
-          {/* Desktop: stars card inline */}
-          {isDesktop && (
-            <div className="bg-white p-4 rounded-2xl shadow border border-yellow-50 mt-6 w-72">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Trophy className="text-yellow-500" size={16} fill="currentColor" />
-                  <span className="font-black text-sm text-gray-600">STARS</span>
-                </div>
-                <span className="font-display font-black text-xl text-blue-500">{progressCount}/{totalCount}</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <Star key={i} size={16} className={i < filledStars ? "text-yellow-400" : "text-gray-200"} fill={i < filledStars ? "currentColor" : "none"} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Buttons */}
+          <div className={`flex flex-col gap-3 ${isDesktop ? "w-80" : "w-full"}`}>
+            {reviewDueCount > 0 && (
+              <button
+                onClick={onStart}
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl px-4 py-2.5 shadow-md font-bold text-xs"
+              >
+                <Calendar size={14} />
+                <span>{reviewDueCount} word{reviewDueCount !== 1 ? "s" : ""} ready for review! 📖</span>
+              </button>
+            )}
 
-        {/* Right side (or bottom on mobile): Actions */}
-        <div className={`flex flex-col items-center gap-3 ${isDesktop ? "w-96" : "w-full mt-5"}`}>
-          {/* Review nudge */}
-          {reviewDueCount > 0 && (
-            <button
-              onClick={onStart}
-              className="w-full flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl px-4 py-2.5 shadow font-black text-xs"
-            >
-              <Calendar size={14} />
-              <span>{reviewDueCount} word{reviewDueCount !== 1 ? "s" : ""} ready for review! 📖</span>
-            </button>
-          )}
-
-          {/* PLAY NOW */}
-          <AnimatedButton
-            hoverScale={1.03}
-            tapScale={0.97}
-            onClick={onStart}
-            className="w-full btn-playful bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-3 py-5 shadow-[0_8px_0_rgb(37,99,235)] active:shadow-none active:translate-y-[8px]"
-          >
-            <Play fill="currentColor" className="w-6 h-6" />
-            <span className="text-xl font-black tracking-widest uppercase">PLAY NOW</span>
-          </AnimatedButton>
-
-          {/* MY STATS */}
-          {user ? (
             <AnimatedButton
               hoverScale={1.03}
               tapScale={0.97}
-              onClick={onOpenStats}
-              className="w-full btn-playful bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2 py-4 shadow-[0_6px_0_rgb(126,34,206)] active:shadow-none active:translate-y-[6px]"
+              onClick={onStart}
+              className="w-full relative overflow-hidden bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white flex items-center justify-center gap-3 py-5 rounded-2xl shadow-[0_8px_0_rgb(30,64,175)] active:shadow-[0_2px_0_rgb(30,64,175)] active:translate-y-[6px] transition-all"
             >
-              <BarChart3 className="w-5 h-5" />
-              <span className="text-lg font-black uppercase tracking-wider">MY STATS</span>
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-200%] animate-[shimmer_3s_infinite]" />
+              <Play fill="currentColor" className="w-7 h-7 relative z-10" />
+              <span className="text-xl font-black tracking-widest uppercase relative z-10">PLAY NOW</span>
             </AnimatedButton>
-          ) : (
-            <SignInButton mode="modal">
-              <button className="w-full btn-playful bg-purple-400 text-white flex items-center justify-center gap-2 py-4 shadow-[0_6px_0_rgb(147,51,234)] active:shadow-none active:translate-y-[6px]">
-                <LogIn className="w-5 h-5" />
-                <span className="text-lg font-black uppercase tracking-wider">Sign In for Stats</span>
-              </button>
-            </SignInButton>
-          )}
 
-          {/* Mobile: stars card */}
-          {!isDesktop && (
-            <div className="bg-white p-3 rounded-2xl shadow border border-yellow-50 w-full">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1.5">
+            {user ? (
+              <AnimatedButton
+                hoverScale={1.02}
+                tapScale={0.98}
+                onClick={onOpenStats}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white flex items-center justify-center gap-2 py-4 rounded-2xl shadow-[0_6px_0_rgb(107,33,168)] active:shadow-[0_2px_0_rgb(107,33,168)] active:translate-y-[4px] transition-all"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-lg font-black uppercase tracking-wider">MY STATS</span>
+              </AnimatedButton>
+            ) : (
+              <SignInButton mode="modal">
+                <button className="w-full bg-gradient-to-r from-purple-400 to-purple-500 text-white flex items-center justify-center gap-2 py-4 rounded-2xl shadow-[0_6px_0_rgb(126,34,206)] active:shadow-[0_2px_0_rgb(126,34,206)] active:translate-y-[4px] transition-all font-black text-lg uppercase tracking-wider">
+                  <LogIn className="w-5 h-5" />
+                  Sign In for Stats
+                </button>
+              </SignInButton>
+            )}
+          </div>
+
+          {/* Stars progress */}
+          <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-blue-100/50 mt-4 w-full" style={{ maxWidth: isDesktop ? 320 : "100%" }}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-yellow-100 p-1.5 rounded-lg">
                   <Trophy className="text-yellow-500" size={14} fill="currentColor" />
-                  <span className="font-black text-xs text-gray-600">STARS</span>
                 </div>
-                <span className="font-display font-black text-lg text-blue-500">{progressCount}/{totalCount}</span>
+                <span className="font-black text-xs text-gray-600 uppercase tracking-wider">Stars Earned</span>
               </div>
-              <div className="flex items-center justify-center gap-0.5">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <Star key={i} size={14} className={i < filledStars ? "text-yellow-400" : "text-gray-200"} fill={i < filledStars ? "currentColor" : "none"} />
-                ))}
-              </div>
+              <span className="font-display font-black text-xl text-blue-600">{progressCount}/{totalCount}</span>
             </div>
-          )}
+            <div className="flex items-center justify-center gap-1">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={i < filledStars && !reducedMotion ? { scale: [1, 1.2, 1] } : undefined}
+                  transition={{ delay: i * 0.1, duration: 0.4 }}
+                >
+                  <Star
+                    size={16}
+                    className={i < filledStars ? "text-yellow-400 drop-shadow-sm" : "text-gray-200"}
+                    fill={i < filledStars ? "currentColor" : "none"}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* ── Footer / Cross promo (full width) ── */}
-      <div className="w-full px-4 sm:px-8 pb-4 mt-auto">
+        {/* Right: Floating letters preview (desktop only) */}
+        {isDesktop && (
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="w-80 lg:w-96 h-80 lg:h-96 relative"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-100/40 to-purple-100/30 rounded-[40px] border border-white/60 shadow-inner" />
+            <FloatingLetters />
+          </motion.div>
+        )}
+      </main>
+
+      {/* ── Footer: Cross promo ──────────── */}
+      <footer className="w-full px-5 sm:px-10 lg:px-20 pb-6">
         <CrossPromo />
-        <p className="mt-2 text-gray-400 font-bold text-[9px] uppercase tracking-widest text-center">
+        <p className="mt-3 text-gray-400 font-bold text-[9px] uppercase tracking-[0.2em] text-center">
           Fun Bible Learning for Kids!
         </p>
-      </div>
+      </footer>
+
+      {/* Shimmer animation */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-200%) skewX(-12deg); }
+          100% { transform: translateX(200%) skewX(-12deg); }
+        }
+      `}</style>
     </motion.div>
   );
 }
