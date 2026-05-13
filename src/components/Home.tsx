@@ -74,14 +74,14 @@ export default function Home({
     confettiTriggered.current = true;
   }, [progressCount]);
 
-  const bw = Math.min(screenWidth * 0.88, 340);
+  const bw = Math.min(screenWidth * 0.88, screenWidth >= 768 ? 420 : 340);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex flex-col items-center w-full max-w-md mx-auto min-h-[100dvh] px-4 pb-4"
+      className="flex flex-col items-center w-full max-w-md sm:max-w-xl lg:max-w-2xl mx-auto min-h-[100dvh] px-4 sm:px-8 pb-4"
     >
       {/* ── Nav bar ──────────────────────── */}
       <div className="w-full flex items-center justify-between py-2.5 shrink-0">
@@ -101,21 +101,21 @@ export default function Home({
         </div>
       </div>
 
-      {/* ── Cross + Title (compact) ──────── */}
-      <div className="flex items-center gap-3 mt-2 mb-3">
+      {/* ── Cross + Title (compact on mobile, larger on desktop) ──────── */}
+      <div className="flex items-center gap-3 sm:gap-5 mt-2 sm:mt-6 mb-3 sm:mb-6">
         <motion.div
           animate={reducedMotion ? undefined : { y: [0, -4, 0], scale: [1, 1.02, 1] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="w-16 h-16 bg-yellow-100 rounded-2xl flex items-center justify-center border-2 border-white relative shadow-inner shrink-0"
+          className="w-16 h-16 sm:w-28 sm:h-28 lg:w-36 lg:h-36 bg-yellow-100 rounded-2xl sm:rounded-[32px] flex items-center justify-center border-2 sm:border-4 border-white relative shadow-inner shrink-0"
         >
-          <ChristianCross className="w-9 h-9 text-yellow-500" />
-          <Sparkles className="absolute top-1 right-1.5 w-2 h-2 text-yellow-300" />
+          <ChristianCross className="w-9 h-9 sm:w-16 sm:h-16 lg:w-20 lg:h-20 text-yellow-500" />
+          <Sparkles className="absolute top-1 right-1.5 sm:top-2 sm:right-3 w-2 h-2 sm:w-3 sm:h-3 text-yellow-300" />
         </motion.div>
         <div className="text-left">
-          <h1 className="text-3xl font-display font-black text-blue-600 leading-none tracking-tighter">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-display font-black text-blue-600 leading-none tracking-tighter">
             Bible Letters
           </h1>
-          <p className="text-xl font-display font-bold text-yellow-500 -mt-0.5">Adventure</p>
+          <p className="text-xl sm:text-3xl lg:text-4xl font-display font-bold text-yellow-500 -mt-0.5">Adventure</p>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function Home({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="text-xs text-blue-600 font-bold mb-4 h-4"
+          className="text-xs sm:text-sm lg:text-base text-blue-600 font-bold mb-4 h-4 sm:h-5"
         >
           {TAGLINES[taglineIdx]}
         </motion.p>
@@ -152,10 +152,10 @@ export default function Home({
           tapScale={0.97}
           onClick={onStart}
           style={{ width: bw }}
-          className="btn-playful bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-3 py-4 shadow-[0_6px_0_rgb(37,99,235)] active:shadow-none active:translate-y-[6px] group"
+          className="btn-playful bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-3 py-4 sm:py-5 lg:py-6 shadow-[0_6px_0_rgb(37,99,235)] active:shadow-none active:translate-y-[6px] group"
         >
-          <Play fill="currentColor" className="w-5 h-5" />
-          <span className="text-lg font-black tracking-widest uppercase">PLAY NOW</span>
+          <Play fill="currentColor" className="w-5 h-5 sm:w-7 sm:h-7" />
+          <span className="text-lg sm:text-xl lg:text-2xl font-black tracking-widest uppercase">PLAY NOW</span>
         </AnimatedButton>
 
         {/* MY STATS */}
