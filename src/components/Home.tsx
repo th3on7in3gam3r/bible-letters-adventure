@@ -294,9 +294,16 @@ export default function Home({
       {/* ── Footer ───────────────────────── */}
       <footer className="w-full px-5 sm:px-10 lg:px-16 pb-6 mt-auto">
         <CrossPromo />
-        <p className="mt-3 text-gray-400 font-bold text-[9px] uppercase tracking-[0.2em] text-center">
-          Fun Bible Learning for Kids!
-        </p>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-3 text-[10px] text-gray-400 font-semibold">
+            <a href="https://biblefunland.com/terms" target="_blank" rel="noreferrer" className="hover:text-gray-600 transition-colors">Terms</a>
+            <span>·</span>
+            <a href="https://biblefunland.com/privacy" target="_blank" rel="noreferrer" className="hover:text-gray-600 transition-colors">Privacy</a>
+          </div>
+          <p className="text-gray-400 font-black text-[9px] uppercase tracking-[0.2em]">
+            Made by BibleFunLand Studio
+          </p>
+        </div>
       </footer>
 
       {/* Shimmer keyframe */}
